@@ -90,7 +90,7 @@ Creates a web hosting account / website and returns the `username` which can be 
 
 ### getInfo()
 
-Get's information about a hosting account such as the main domain name, whether or not it is suspended, the hostname of it's server, nameservers etc.
+Gets information about a hosting account such as the main domain name, whether or not it is suspended, the hostname of it's server, nameservers etc.
 
 ### getLoginUrl()
 

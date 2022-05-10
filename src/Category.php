@@ -46,7 +46,7 @@ abstract class Category extends BaseCategory
     abstract public function create(CreateParams $params): AccountInfo;
 
     /**
-     * Get's information about a hosting account such as the main domain name,
+     * Gets information about a hosting account such as the main domain name,
      * whether or not it is suspended, the hostname of it's server, nameservers
      * etc.
      */
