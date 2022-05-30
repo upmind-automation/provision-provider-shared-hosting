@@ -15,7 +15,7 @@ class ClientFactory extends BaseClientFactory
      * 
      * @return array Guzzle Request options
      */
-    protected static function getGuzzleOptions(array $configuration): array
+    protected static function getGuzzleOptions(array $configuration, array $requestOptions = []): array
     {
         $protocol = array_get($configuration, 'protocol', 'https');
         $hostname = array_get($configuration, 'hostname');
@@ -28,7 +28,7 @@ class ClientFactory extends BaseClientFactory
             ? fopen(storage_path("logs/{$hostname}.log"), 'w+') 
             : false;
 
-        return [
+        return array_merge([
             'base_uri' => "{$protocol}://{$hostname}:{$port}/json-api/",
             'headers' => [
                 'Accept' => 'application/json',
@@ -42,7 +42,7 @@ class ClientFactory extends BaseClientFactory
             'http_errors' => false,
             'allow_redirects' => false,
             'debug' => $debugStream
-        ];
+        ], $requestOptions);
     }
 
     /**
