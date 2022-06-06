@@ -1,10 +1,11 @@
 <?php
 
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\WHMv1\Api;
 
 use GuzzleHttp\ClientInterface;
+use Illuminate\Support\Arr;
 use Upmind\ProvisionBase\Provider\Helper\Api\ClientFactory as BaseClientFactory;
 use Upmind\ProvisionBase\Provider\Helper\Exception\ConfigurationError;
 
@@ -12,21 +13,16 @@ class ClientFactory extends BaseClientFactory
 {
     /**
      * @param array $configuration Provider Configuration array
-     * 
+     *
      * @return array Guzzle Request options
      */
     protected static function getGuzzleOptions(array $configuration, array $requestOptions = []): array
     {
-        $protocol = array_get($configuration, 'protocol', 'https');
-        $hostname = array_get($configuration, 'hostname');
-        $port = array_get($configuration, 'port', 2087);
-        $whm_username = array_get($configuration, 'whm_username');
-        $api_key = array_get($configuration, 'api_key');
-
-        $debugMode = array_get($configuration, 'debug', false);
-        $debugStream = $debugMode 
-            ? fopen(storage_path("logs/{$hostname}.log"), 'w+') 
-            : false;
+        $protocol = 'https';
+        $hostname = Arr::get($configuration, 'hostname');
+        $port = 2087;
+        $whm_username = Arr::get($configuration, 'whm_username');
+        $api_key = Arr::get($configuration, 'api_key');
 
         return array_merge([
             'base_uri' => "{$protocol}://{$hostname}:{$port}/json-api/",
@@ -41,14 +37,13 @@ class ClientFactory extends BaseClientFactory
             'timeout' => 60,
             'http_errors' => false,
             'allow_redirects' => false,
-            'debug' => $debugStream
         ], $requestOptions);
     }
 
     /**
      * Ensure the given Provider Configuration contains the necessary fields to
      * construct a Guzzle Client.
-     * 
+     *
      * @throws ConfigurationError
      */
     protected static function checkConfiguration(array $configuration)
