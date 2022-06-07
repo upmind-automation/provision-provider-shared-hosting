@@ -469,29 +469,39 @@ class Provider extends SharedHosting implements ProviderInterface
         return 8; //some server versions support 16, but earlier only support max 8
     }
 
-    protected function makeApiCall(string $method, string $function, array $params = []): Response
-    {
-        $client = $this->getClient();
-        $request = new Request($client, $method, $function, $params);
-        try {
-            return $request->getResponse();
-        } catch (RequestException $e) {
-            $this->errorResult(
-                'WHM API Connection Error',
-                ['function' => $function, 'error' => $e->getMessage()],
-                ['response' => $e->hasResponse() ? $e->getResponse()->getBody()->__toString() : null],
-                $e
-            );
-        }
+    /**
+     * @param string $method HTTP method
+     * @param string $function WHMv1 API function name
+     * @param array $params API function params
+     * @param array $requestOptions Guzzle request options
+     *
+     * @return \Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\Response
+     */
+    protected function makeApiCall(
+        string $method,
+        string $function,
+        array $params = [],
+        array $requestOptions = []
+    ): Response {
+        return $this->asyncApiCall($method, $function, $params, $requestOptions)->wait();
     }
 
     /**
+     * @param string $method HTTP method
+     * @param string $function WHMv1 API function name
+     * @param array $params API function params
+     * @param array $requestOptions Guzzle request options
+     *
      * @return PromiseInterface<Response>
      */
-    protected function asyncApiCall(string $method, string $function, array $params = []): PromiseInterface
-    {
+    protected function asyncApiCall(
+        string $method,
+        string $function,
+        array $params = [],
+        array $requestOptions = []
+    ): PromiseInterface {
         $client = $this->getClient();
-        $request = new Request($client, $method, $function, $params);
+        $request = new Request($client, $method, $function, $params, $requestOptions);
 
         return $request->getPromise()->otherwise(function ($e) use ($function) {
             if ($e instanceof RequestException) {
