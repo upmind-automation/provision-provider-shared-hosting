@@ -17,7 +17,6 @@ use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
-use Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\ClientFactory;
 use Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\Request;
 use Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\Response;
 use Upmind\ProvisionBase\Result\ProviderResult;
@@ -539,6 +538,23 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->client;
         }
 
-        return $this->client = ClientFactory::make($this->configuration->raw());
+        return $this->client = new Client([
+            'base_uri' => sprintf('https://%s:2087/json-api/', $this->configuration->hostname),
+            'headers' => [
+                'Accept' => 'application/json',
+                'Authorization' => sprintf(
+                    'whm %s:%s',
+                    $this->configuration->whm_username,
+                    $this->configuration->api_key
+                ),
+            ],
+            'query' => [
+                'api.version' => 1
+            ],
+            'connect_timeout' => 10,
+            'timeout' => 60,
+            'http_errors' => false,
+            'allow_redirects' => false,
+        ]);
     }
 }
