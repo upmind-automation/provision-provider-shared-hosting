@@ -306,7 +306,7 @@ class Provider extends SharedHosting implements ProviderInterface
         ];
 
         $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'suspendreseller', $requestParams)
+            ? $this->makeApiCall('POST', 'suspendreseller', $requestParams, ['timeout' => 240])
             : $this->makeApiCall('POST', 'suspendacct', $requestParams);
         $this->processResponse($response);
     }
@@ -318,7 +318,7 @@ class Provider extends SharedHosting implements ProviderInterface
         ];
 
         $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'unsuspendreseller', $requestParams)
+            ? $this->makeApiCall('POST', 'unsuspendreseller', $requestParams, ['timeout' => 240])
             : $this->makeApiCall('POST', 'unsuspendacct', $requestParams);
         $this->processResponse($response);
     }
@@ -326,8 +326,17 @@ class Provider extends SharedHosting implements ProviderInterface
     protected function deleteAccount(string $username): void
     {
         $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'terminatereseller', ['user' => $username, 'terminatereseller' => true])
-            : $this->makeApiCall('POST', 'removeacct', ['user' => $username]);
+            ? $this->makeApiCall(
+                'POST',
+                'terminatereseller',
+                ['user' => $username, 'terminatereseller' => true],
+                ['timeout' => 240]
+            )
+            : $this->makeApiCall(
+                'POST',
+                'removeacct',
+                ['user' => $username]
+            );
         $this->processResponse($response);
     }
 
