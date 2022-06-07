@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## v4.1 - 2022-06-07
+
+Update cPanel (WHMv1) provider; remove confusing configuration values, simplify
+HTTP client creation, and increase request timeout for suspend/unsuspend/terminate
+functions for reseller accounts
 ## v4.0.1 - 2022-05-30
 
 Fix WHMv1 Api ClientFactory compatibility with base ClientFactory
