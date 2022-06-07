@@ -7,7 +7,6 @@ namespace Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC;
 use Carbon\Carbon;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
-use Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Api\ClientFactory;
 use Upmind\ProvisionBase\Result\ProviderResult;
 use Upmind\ProvisionBase\Helper;
 use PleskX\Api\Client;
@@ -854,6 +853,22 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->client;
         }
 
-        return $this->client = ClientFactory::make($this->configuration->raw());
+        $hostname = $this->configuration->hostname;
+        $port = $this->configuration->port ?: 8443;
+        $protocol = $this->configuration->protocol ?: 'https';
+
+        $client = new Client($hostname, $port, $protocol);
+
+        $admin_username = $this->configuration->admin_username;
+        $admin_password = $this->configuration->admin_password;
+        $secret_key = $this->configuration->secret_key;
+
+        if ($secret_key) {
+            $client->setSecretKey($secret_key);
+        } else {
+            $client->setCredentials($admin_username, $admin_password);
+        }
+
+        return $this->client = $client;
     }
 }
