@@ -6,11 +6,12 @@ namespace Upmind\ProvisionProviders\SharedHosting\TwentyI;
 
 use ErrorException;
 use Illuminate\Support\Arr;
+use Psr\Log\LoggerInterface;
 use Throwable;
 use TwentyI\API\Authentication;
 use TwentyI\API\HTTPException;
-use TwentyI\API\Services;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
+use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Services;
 
 /**
  * 20i StackCP reseller API helper.
@@ -30,10 +31,11 @@ class Api
     /**
      * @param string $generalApiKey Bearer token E.g., "7a528cf6921cc713"
      */
-    public function __construct(string $generalApiKey)
+    public function __construct(string $generalApiKey, ?LoggerInterface $logger = null)
     {
         $this->auth = new Authentication($generalApiKey);
         $this->services = new Services($generalApiKey);
+        $this->services->setLogger($logger);
     }
 
     /**
