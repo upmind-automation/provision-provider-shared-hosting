@@ -9,6 +9,7 @@ use TwentyI\API\Services as APIServices;
 use Psr\Log\LoggerInterface;
 use stdClass;
 use Throwable;
+use TwentyI\API\HTTPException;
 
 /**
  * TwentyI\API\Services decorator which can logs request and response data.
@@ -40,7 +41,7 @@ class Services extends APIServices
     public function getRawWithFields($url, $fields = [], $options = [])
     {
         try {
-            $raw = parent::getRawWithFields($url, $fields, $options);
+            $raw = parent::getRawWithFields($url, $fields, $options + $this->getCurlOptions());
             $result = json_decode($raw) ?? $raw;
             return $raw;
         } catch (\Throwable $e) {
@@ -56,7 +57,7 @@ class Services extends APIServices
     public function postWithFields($url, array $fields, array $options = [])
     {
         try {
-            return $result = parent::postWithFields($url, $fields, $options);
+            return $result = parent::postWithFields($url, $fields, $options + $this->getCurlOptions());
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
         } finally {
@@ -70,7 +71,7 @@ class Services extends APIServices
     public function putWithFields($url, $fields, $options = [])
     {
         try {
-            return $result = parent::putWithFields($url, $fields, $options);
+            return $result = parent::putWithFields($url, $fields, $options + $this->getCurlOptions());
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
         } finally {
@@ -84,7 +85,7 @@ class Services extends APIServices
     public function deleteWithFields($url, $fields = [], $options = [])
     {
         try {
-            return $result = parent::deleteWithFields($url, $fields, $options);
+            return $result = parent::deleteWithFields($url, $fields, $options + $this->getCurlOptions());
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
         } finally {
@@ -94,10 +95,9 @@ class Services extends APIServices
 
     protected function getErrorResult(Throwable $e): array
     {
-        $error = $e->getTraceAsString();
-
         return [
-            'error' => $error,
+            'exception' => get_class($e),
+            'response' => $e instanceof HTTPException ? $e->decodedBody : null,
         ];
     }
 
@@ -106,7 +106,7 @@ class Services extends APIServices
         if ($this->logger) {
             $result = $this->filterResult($result);
 
-            $status = empty($result['error']) ? 'OK' : 'ERROR';
+            $status = empty($result['exception']) ? 'OK' : 'ERROR';
 
             $this->logger->debug(sprintf('20i API Call [%s]: %s %s', $status, strtoupper($method), $url), [
                 'params' => $params,
@@ -153,5 +153,12 @@ class Services extends APIServices
                 || Str::endsWith((string)$key, ['Html', 'EmailContent', 'Css'])
                 || strlen($value) > 500
             );
+    }
+
+    protected function getCurlOptions(): array
+    {
+        return [
+            CURLOPT_TIMEOUT => 15,
+        ];
     }
 }
