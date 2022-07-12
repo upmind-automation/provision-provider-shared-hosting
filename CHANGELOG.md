@@ -5,8 +5,8 @@ All notable changes to the package will be documented in this file.
 ## v4.2 - 2022-07-12
 
 - Add support for optional hosting platform customer_id
-- Update 20i provider; add API call debug logging and implement support for
-  customer_id
+- Update 20i provider; add API call debug logging, always find or create an
+  explicit stack user when creating new accounts, and implement support for customer_id
 
 ## v4.1 - 2022-06-07
 
