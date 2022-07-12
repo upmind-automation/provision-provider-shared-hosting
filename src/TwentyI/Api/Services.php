@@ -46,6 +46,7 @@ class Services extends APIServices
             return $raw;
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
+            throw $e;
         } finally {
             $this->logRequest('GET', $url, $fields, $result);
         }
@@ -60,6 +61,7 @@ class Services extends APIServices
             return $result = parent::postWithFields($url, $fields, $options + $this->getCurlOptions());
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
+            throw $e;
         } finally {
             $this->logRequest('POST', $url, $fields, $result);
         }
@@ -74,6 +76,7 @@ class Services extends APIServices
             return $result = parent::putWithFields($url, $fields, $options + $this->getCurlOptions());
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
+            throw $e;
         } finally {
             $this->logRequest('PUT', $url, $fields, $result);
         }
@@ -88,16 +91,20 @@ class Services extends APIServices
             return $result = parent::deleteWithFields($url, $fields, $options + $this->getCurlOptions());
         } catch (\Throwable $e) {
             $result = $this->getErrorResult($e);
+            throw $e;
         } finally {
             $this->logRequest('DELETE', $url, $fields, $result);
         }
     }
 
+    /**
+     * @param HTTPException|Throwable $e
+     */
     protected function getErrorResult(Throwable $e): array
     {
         return [
             'exception' => get_class($e),
-            'response' => $e instanceof HTTPException ? $e->decodedBody : null,
+            'response' => $e->decodedBody ?? null,
         ];
     }
 
@@ -149,7 +156,7 @@ class Services extends APIServices
                     'bannerUrl',
                     'billingDue',
                     'passwordReset',
-                ])
+                ], true)
                 || Str::endsWith((string)$key, ['Html', 'EmailContent', 'Css'])
                 || strlen($value) > 500
             );
@@ -158,7 +165,7 @@ class Services extends APIServices
     protected function getCurlOptions(): array
     {
         return [
-            CURLOPT_TIMEOUT => 15,
+            CURLOPT_TIMEOUT => 60, // yep, it seriously can take almost this long to do some things!
         ];
     }
 }
