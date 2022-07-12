@@ -63,14 +63,25 @@ class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
 
     public function create(CreateParams $params): AccountInfo
     {
-        $hostingId = $this->api()->createPackage($params->package_name, $params->domain);
+        $hostingId = $this->api()->createPackage(
+            $params->package_name,
+            $params->domain,
+            $customerId = $this->findOrCreateUser($params)
+        );
 
-        return $this->getAccountInfoData($hostingId);
+        return $this->getAccountInfoData($hostingId)
+            ->setCustomerId($customerId);
     }
 
     public function getInfo(AccountUsername $params): AccountInfo
     {
-        return $this->getAccountInfoData($params->username);
+        $info = $this->getAccountInfoData($params->username);
+
+        if ($params->customer_id) {
+            $info->setCustomerId($params->customer_id);
+        }
+
+        return $info;
     }
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
@@ -79,7 +90,9 @@ class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
 
         $info = $this->api()->getPackageInfo($hostingId);
 
-        $stackUser = Arr::first($info->stackUsers);
+        $stackUser = Arr::first($info->stackUsers, function ($stackUser) use ($params) {
+            return $params->customer_id && Str::start($params->customer_id, 'stack-user:') === $stackUser;
+        }, Arr::first($info->stackUsers));
 
         if (!$stackUser) {
             return $this->errorResult('Hosting package has no stack user assigned');
@@ -95,12 +108,12 @@ class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
 
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        $this->errorResult('Function not available for 20i accounts');
+        throw $this->errorResult('Function not available for 20i accounts');
     }
 
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        $this->errorResult('Function not available for 20i accounts');
+        throw $this->errorResult('Function not available for 20i accounts');
     }
 
     public function changePassword(ChangePasswordParams $params): EmptyResult
@@ -109,7 +122,9 @@ class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
 
         $info = $this->api()->getPackageInfo($hostingId);
 
-        $stackUser = Arr::first($info->stackUsers);
+        $stackUser = Arr::first($info->stackUsers, function ($stackUser) use ($params) {
+            return $params->customer_id && Str::start($params->customer_id, 'stack-user:') === $stackUser;
+        }, Arr::first($info->stackUsers));
 
         if (!$stackUser) {
             return $this->errorResult('Hosting package has no stack user assigned');
@@ -283,18 +298,28 @@ class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
      */
     protected function findOrCreateUser(CreateParams $params): string
     {
-        if ($this->configuration->auto_detect_stack_user) {
-            // re-use customer email address for stack user
-
-            $existingUser = $this->api()->searchForStackUser($params->email);
-
-            if ($existingUser) {
-                return $existingUser;
-            }
-
-            return $this->api()->createStackUser($params->email);
+        if ($params->customer_id) {
+            return Str::start($params->customer_id, 'stack-user:');
         }
 
+        // re-use customer email address for stack user
+
+        $existingUser = $this->api()->searchForStackUser($params->email);
+
+        if ($existingUser) {
+            return $existingUser;
+        }
+
+        return $this->api()->createStackUser($params->email);
+    }
+
+    /**
+     * Create a new stack user by combining email and domain name.
+     *
+     * @return string Stack user reference
+     */
+    protected function createUniqueUser(CreateParams $params): string
+    {
         // create a new unique user for this domain
 
         $email = $this->getEmailPlusDomain($params->email, $params->domain);
