@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 use Throwable;
 use TwentyI\API\Authentication;
+use TwentyI\API\CurlException;
 use TwentyI\API\HTTPException;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Services;
@@ -411,6 +412,14 @@ class Api
             $errorMessage .= ' (not found)';
         }
 
+        if ($this->exceptionIs409($e)) {
+            $errorMessage .= ' (conflict)';
+        }
+
+        if ($this->exceptionIsTimeout($e)) {
+            $errorMessage .= ' (request timed out)';
+        }
+
         if ($e instanceof ProvisionFunctionError) {
             // merge any additional error data / debug data
             $data = array_merge($e->getData(), $data);
@@ -436,16 +445,36 @@ class Api
     protected function shouldWrapException(Throwable $e): bool
     {
         return $e instanceof HTTPException
-            || $this->exceptionIs404($e);
+            || $this->exceptionIs404($e)
+            || $this->exceptionIsTimeout($e);
     }
 
     /**
      * Determine whether the given exception was thrown due to a 404 response
-     * from the stack cp api
+     * from the stack cp api.
      */
     protected function exceptionIs404(Throwable $e): bool
     {
         return $e instanceof ErrorException
             && preg_match('/(^|[^\d])404([^\d]|$)/', $e->getMessage());
+    }
+
+    /**
+     * Determine whether the given exception was thrown due to a 409 response
+     * from the stack cp api.
+     */
+    protected function exceptionIs409(Throwable $e): bool
+    {
+        return $e instanceof HTTPException
+            && preg_match('/(^|[^\d])409([^\d]|$)/', $e->getMessage());
+    }
+
+    /**
+     * Determine whether the given exception was thrown due to a request timeout.
+     */
+    protected function exceptionIsTimeout(Throwable $e): bool
+    {
+        return $e instanceof CurlException
+            && preg_match('/(^|[^\w])timed out([^\w]|$)/i', $e->getMessage());
     }
 }
