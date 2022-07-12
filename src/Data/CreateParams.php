@@ -10,6 +10,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
 /**
  * Data for creating a new hosting account.
  *
+ * @property-read string|integer|null $customer_id ID of the customer on the hosting platform
  * @property-read string|null $username Username for the new account
  * @property-read string|null $owner_username Username of the reseller "owner" of the new account
  * @property-read boolean|null $owns_itself Account should own itself (overrides $owner_username)
@@ -26,6 +27,7 @@ class CreateParams extends DataSet
     public static function rules(): Rules
     {
         return new Rules([
+            'customer_id' => ['nullable'],
             'username' => ['nullable', 'string'],
             'owner_username' => ['string'],
             'owns_itself' => ['bool'],

@@ -10,6 +10,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
 /**
  * Result set encapsulating the info/data about a created hosting account.
  *
+ * @property-read string|integer|null $customer_id ID of the customer on the hosting platform
  * @property-read string $username Username of the account
  * @property-read string $domain Main domain name of the account
  * @property-read bool|null $reseller Whether or not the account has reseller privileges
@@ -25,6 +26,7 @@ class AccountInfo extends ResultData
     public static function rules(): Rules
     {
         return new Rules([
+            'customer_id' => ['nullable'],
             'username' => ['required', 'string'],
             'domain' => ['required', 'domain_name'],
             'reseller' => ['nullable', 'boolean'],
@@ -44,6 +46,15 @@ class AccountInfo extends ResultData
     public function setUsername(string $username): self
     {
         $this->setValue('username', $username);
+        return $this;
+    }
+
+    /**
+     * @param string|int|null $customerId Customer ID on the hosting platform
+     */
+    public function setCustomerId($customerId): self
+    {
+        $this->setValue('customer_id', $customerId);
         return $this;
     }
 
