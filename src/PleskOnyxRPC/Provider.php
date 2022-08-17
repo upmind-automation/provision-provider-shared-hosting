@@ -392,28 +392,82 @@ class Provider extends SharedHosting implements ProviderInterface
     public function getInfo(AccountUsername $params): AccountInfo
     {
         $username = $params->username;
+        $serverHostName = '';
+        $domainNameServers = [];
 
         if ($this->loginBelongsToReseller($username)) {
             return $this->getResellerInfo($username);
         }
 
-        $customerRequest = [
-            'get' => [
+        $domainRequest = [
+            'get-domain-list' => [
                 'filter' => [
-                    'login' => $username
+                    'login' => $username,
                 ],
-                'dataset' => [
-                    'stat' => 'stat'
-                ]
-            ]
+            ],
         ];
 
+        $webspaceRequest = [
+            'get' => [
+                'filter' => [
+                    'owner-login' => $username,
+                ],
+                'dataset' => [
+                    'gen_info' => '',
+                    'stat' => '',
+                    'hosting' => '',
+                    'packages' => '',
+                    'plan-items' => '',
+                ],
+            ],
+        ];
+        
         $client = $this->getClient();
 
         try {
-            $account_info = $client->customer()->request($customerRequest)->data->stat;
+            $domainInfo = $client->customer()->request($domainRequest, Client::RESPONSE_FULL);
+            $webspaceInfo = $client->webspace()->request($webspaceRequest);
 
-            return $this->emptyResult('Customer stats retrieved', compact('account_info'));
+            $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
+
+            foreach ($domainInfo['customer']['get-domain-list']['result']['domains'] as $domain) {
+                if (!$domain['main']) {
+                    continue;
+                }
+                $dnsRequest = [
+                    'get_rec' => [
+                        'filter' => [
+                            'site-id' => $domain['id'],
+                        ],
+                    ],
+                ];
+                $dnsResult = $client->dns()->request($dnsRequest, Client::RESPONSE_FULL);
+                $dnsResult = json_decode(json_encode($dnsResult), true);
+                foreach ($dnsResult['dns']['get_rec']['result'] as $dns) {
+                    if ($dns['status'] == 'ok') {
+                        if ($dns['data']['type'] == 'NS') {
+                            $serverHostName = rtrim($dns['data']['host'], '.');
+                            $domainNameServers[] = rtrim($dns['data']['value'], '.');
+                        }
+                    }
+                }
+            }
+
+            return AccountInfo::create(
+                [
+                    'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
+                    'username' => $username,
+                    'domain' => (string)$webspaceInfo->data->gen_info->name,
+                    'reseller' => false,
+                    'server_hostname' => $serverHostName,
+                    'package_name' => (string)$webspaceInfo->data->gen_info->name,
+                    'suspended' => !((int)$webspaceInfo->data->gen_info->status === 0),
+                    'suspend_reason' => null,
+                    'ip' => (string)$webspaceInfo->data->gen_info->dns_ip_address,
+                    'nameservers' => $domainNameServers,
+                ]
+            );
+
         } catch (PleskException | PleskClientException | ProviderError $e) {
             return $this->handleException($e, 'Get customer stats');
         }
@@ -424,10 +478,16 @@ class Provider extends SharedHosting implements ProviderInterface
         $resellerRequest = [
             'get' => [
                 'filter' => [
-                    'login' => $username
+                    'login' => $username,
                 ],
                 'dataset' => [
-                    'stat' => 'stat'
+                    'gen_info' => 'gen_info',
+                    'stat' => 'stat',
+                ]
+            ],
+            'get-domain-list' => [
+                'filter' => [
+                    'login' => $username,
                 ]
             ]
         ];
@@ -509,6 +569,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
+        \Log::debug('==================');
         $username = $params->username;
         $user_ip = $params->user_ip;
 
