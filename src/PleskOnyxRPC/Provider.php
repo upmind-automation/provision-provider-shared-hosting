@@ -431,6 +431,17 @@ class Provider extends SharedHosting implements ProviderInterface
 
             $domainNameServers = $this->extractNameServers((string)$webspaceInfo->data->gen_info->name, $domainInfo['customer']['get-domain-list']['result']['domains'], $client);
 
+            $subscriptions = json_decode(json_encode($webspaceInfo->data->{'subscriptions'}, JSON_PRETTY_PRINT), true);
+            $servicePlanRequest = [
+                'get' => [
+                    'filter' => [
+                        'guid' => $subscriptions['subscription']['plan']['plan-guid'],
+                    ],
+                ],
+            ];
+
+            $servicePlanInfo = $client->servicePlan()->request($servicePlanRequest);
+
             return AccountInfo::create(
                 [
                     'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
@@ -438,7 +449,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     'domain' => (string)$webspaceInfo->data->gen_info->name,
                     'reseller' => false,
                     'server_hostname' => $this->configuration->hostname,
-                    'package_name' => (isset($webspaceInfo->data->{'plan-items'}->item[0]->name))? (string)$webspaceInfo->data->{'plan-items'}->item[0]->name : 'Custom',
+                    'package_name' => (isset($servicePlanInfo->name))? (string)$servicePlanInfo->name : 'Custom',
                     'suspended' => !((int)$webspaceInfo->data->gen_info->status === 0),
                     'suspend_reason' => null,
                     'ip' => (string)$webspaceInfo->data->gen_info->dns_ip_address,
