@@ -392,8 +392,6 @@ class Provider extends SharedHosting implements ProviderInterface
     public function getInfo(AccountUsername $params): AccountInfo
     {
         $username = $params->username;
-        $serverHostName = '';
-        $domainNameServers = [];
 
         if ($this->loginBelongsToReseller($username)) {
             return $this->getResellerInfo($username);
@@ -430,28 +428,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
 
-            foreach ($domainInfo['customer']['get-domain-list']['result']['domains'] as $domain) {
-                if (!$domain['main']) {
-                    continue;
-                }
-                $dnsRequest = [
-                    'get_rec' => [
-                        'filter' => [
-                            'site-id' => $domain['id'],
-                        ],
-                    ],
-                ];
-                $dnsResult = $client->dns()->request($dnsRequest, Client::RESPONSE_FULL);
-                $dnsResult = json_decode(json_encode($dnsResult), true);
-                foreach ($dnsResult['dns']['get_rec']['result'] as $dns) {
-                    if ($dns['status'] == 'ok') {
-                        if ($dns['data']['type'] == 'NS') {
-                            $serverHostName = rtrim($dns['data']['host'], '.');
-                            $domainNameServers[] = rtrim($dns['data']['value'], '.');
-                        }
-                    }
-                }
-            }
+            $domainNameServers = $this->extractNameServers($domainInfo['customer']['get-domain-list']['result']['domains'], $client);
+
 
             return AccountInfo::create(
                 [
@@ -459,7 +437,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     'username' => $username,
                     'domain' => (string)$webspaceInfo->data->gen_info->name,
                     'reseller' => false,
-                    'server_hostname' => $serverHostName,
+                    'server_hostname' => (string)$webspaceInfo->data->gen_info->name,
                     'package_name' => (string)$webspaceInfo->data->gen_info->name,
                     'suspended' => !((int)$webspaceInfo->data->gen_info->status === 0),
                     'suspend_reason' => null,
@@ -569,7 +547,6 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        \Log::debug('==================');
         $username = $params->username;
         $user_ip = $params->user_ip;
 
@@ -931,5 +908,52 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         return $this->client = $client;
+    }
+
+    /**
+     * @param array $domains
+     * @param Client $client
+     * @param array $domainNameServers
+     * @return array
+     */
+    private function extractNameServers(array $domains, \PleskX\Api\Client $client, array $domainNameServers = []): array
+    {
+        $uniqueArray = [];
+        foreach ($domains as $domain) {
+            if (!isset($domain['id'])) {
+                $domainNameServers = $this->extractNameServers($domain, $client, $domainNameServers);
+                continue;
+            }
+
+            if (!$domain['main']) {
+                continue;
+            }
+
+            $dnsRequest = [
+                'get_rec' => [
+                    'filter' => [
+                        'site-id' => $domain['id'],
+                    ],
+                    'include-subdomains' => ''
+                ],
+            ];
+            $dnsResult = $client->dns()->request($dnsRequest, Client::RESPONSE_FULL);
+            $dnsResult = json_decode(json_encode($dnsResult), true);
+            foreach ($dnsResult['dns']['get_rec']['result'] as $dns) {
+                if ($dns['status'] == 'ok') {
+                    if ($dns['data']['type'] == 'NS') {
+                        $serverName = rtrim($dns['data']['value'], '.');
+
+                        if (isset($uniqueArray[$serverName])) {
+                            continue;
+                        }
+                        $uniqueArray[$serverName] = 1;
+                        $domainNameServers[] = $serverName;
+                    }
+                }
+            }
+        }
+
+        return $domainNameServers;
     }
 }
