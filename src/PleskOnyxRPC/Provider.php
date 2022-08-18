@@ -416,6 +416,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     'hosting' => '',
                     'packages' => '',
                     'plan-items' => '',
+                    'subscriptions' => '',
                 ],
             ],
         ];
@@ -428,8 +429,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
 
-            $domainNameServers = $this->extractNameServers($domainInfo['customer']['get-domain-list']['result']['domains'], $client);
-
+            $domainNameServers = $this->extractNameServers((string)$webspaceInfo->data->gen_info->name, $domainInfo['customer']['get-domain-list']['result']['domains'], $client);
 
             return AccountInfo::create(
                 [
@@ -437,8 +437,8 @@ class Provider extends SharedHosting implements ProviderInterface
                     'username' => $username,
                     'domain' => (string)$webspaceInfo->data->gen_info->name,
                     'reseller' => false,
-                    'server_hostname' => (string)$webspaceInfo->data->gen_info->name,
-                    'package_name' => (string)$webspaceInfo->data->gen_info->name,
+                    'server_hostname' => $this->configuration->hostname,
+                    'package_name' => (isset($webspaceInfo->data->{'plan-items'}->item[0]->name))? (string)$webspaceInfo->data->{'plan-items'}->item[0]->name : 'Custom',
                     'suspended' => !((int)$webspaceInfo->data->gen_info->status === 0),
                     'suspend_reason' => null,
                     'ip' => (string)$webspaceInfo->data->gen_info->dns_ip_address,
@@ -916,16 +916,20 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param array $domainNameServers
      * @return array
      */
-    private function extractNameServers(array $domains, \PleskX\Api\Client $client, array $domainNameServers = []): array
+    private function extractNameServers(string $domainName, array $domains, \PleskX\Api\Client $client, array $domainNameServers = []): array
     {
         $uniqueArray = [];
         foreach ($domains as $domain) {
             if (!isset($domain['id'])) {
-                $domainNameServers = $this->extractNameServers($domain, $client, $domainNameServers);
+                $domainNameServers = $this->extractNameServers($domainName, $domain, $client, $domainNameServers);
                 continue;
             }
 
             if (!$domain['main']) {
+                continue;
+            }
+
+            if ($domainName != $domain['name']) {
                 continue;
             }
 
@@ -937,7 +941,9 @@ class Provider extends SharedHosting implements ProviderInterface
                     'include-subdomains' => ''
                 ],
             ];
+
             $dnsResult = $client->dns()->request($dnsRequest, Client::RESPONSE_FULL);
+
             $dnsResult = json_decode(json_encode($dnsResult), true);
             foreach ($dnsResult['dns']['get_rec']['result'] as $dns) {
                 if ($dns['status'] == 'ok') {
