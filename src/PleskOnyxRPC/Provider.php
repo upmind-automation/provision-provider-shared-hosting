@@ -77,6 +77,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function create(CreateParams $params): AccountInfo
     {
+        \Log::debug($params);
         if ($params->as_reseller) {
             return $this->createReseller($params);
         }
@@ -425,9 +426,9 @@ class Provider extends SharedHosting implements ProviderInterface
 
         try {
             $domainInfo = $client->customer()->request($domainRequest, Client::RESPONSE_FULL);
+            $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
             $webspaceInfo = $client->webspace()->request($webspaceRequest);
 
-            $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
 
             $domainNameServers = $this->extractNameServers((string)$webspaceInfo->data->gen_info->name, $domainInfo['customer']['get-domain-list']['result']['domains'], $client);
 
@@ -462,31 +463,55 @@ class Provider extends SharedHosting implements ProviderInterface
         }
     }
 
-    protected function getResellerInfo(string $username): EmptyResult
+    protected function getResellerInfo(string $username): AccountInfo
     {
-        $resellerRequest = [
+        $webspaceRequest = [
             'get' => [
                 'filter' => [
-                    'login' => $username,
+                    'owner-login' => $username,
                 ],
                 'dataset' => [
-                    'gen_info' => 'gen_info',
-                    'stat' => 'stat',
-                ]
+                    'gen_info' => '',
+                    'stat' => '',
+                    'hosting' => '',
+                    'packages' => '',
+                    'plan-items' => '',
+                    'subscriptions' => '',
+                ],
             ],
+        ];
+
+        $domainRequest = [
             'get-domain-list' => [
                 'filter' => [
                     'login' => $username,
-                ]
-            ]
+                ],
+            ],
         ];
 
         $client = $this->getClient();
 
         try {
-            $account_info = $client->reseller()->request($resellerRequest)->data->stat;
+            $webSpaceInfo = $client->webspace()->request($webspaceRequest);
+            $domainInfo = $client->reseller()->request($domainRequest, Client::RESPONSE_FULL);
+            $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
+            $domainNameServers = $this->extractNameServers((string)$webSpaceInfo->data->gen_info->name, $domainInfo['reseller']['get-domain-list']['result']['domains'], $client);
 
-            return $this->emptyResult('Reseller stats retrieved', compact('account_info'));
+
+            return AccountInfo::create(
+                [
+                    'customer_id' => (string)$webSpaceInfo->data->gen_info->{'owner-id'},
+                    'username' => $username,
+                    'domain' => (string)$webSpaceInfo->data->gen_info->name,
+                    'reseller' => true,
+                    'server_hostname' => $this->configuration->hostname,
+                    'package_name' => (isset($servicePlanInfo->name))? (string)$servicePlanInfo->name : 'Custom',
+                    'suspended' => !((int)$webSpaceInfo->data->gen_info->status === 0),
+                    'suspend_reason' => null,
+                    'ip' => (string)$webSpaceInfo->data->gen_info->dns_ip_address,
+                    'nameservers' => $domainNameServers,
+                ]
+            );
         } catch (PleskException | PleskClientException | ProviderError $e) {
             return $this->handleException($e, 'Get reseller stats');
         }
