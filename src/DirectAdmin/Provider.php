@@ -221,6 +221,11 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setReseller(true);
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function getInfo(AccountUsername $params): AccountInfo
     {
         return $this->getAccountInfo($params->username);
@@ -273,6 +278,12 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
     }
 
+
+    /**
+     * @param SuspendParams $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function suspend(SuspendParams $params): AccountInfo
     {
         $this->suspendAccount($params->username, $params->reason);
@@ -308,29 +319,36 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->emptyResult('Account deleted');
     }
 
-    protected function suspendAccount(string $username, ?string $reason = null): void
+    /**
+     * @param string $username
+     * @param string|null $reason
+     * @return array
+     * @throws \Exception
+     */
+    protected function suspendAccount(string $username, ?string $reason = null): array
     {
         $requestParams = [
-            'user' => $username,
+            'select0' => $username,
+            'dosuspend' => 'anything',
             'reason' => $reason,
         ];
 
-        $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'suspendreseller', $requestParams, ['timeout' => 240])
-            : $this->makeApiCall('POST', 'suspendacct', $requestParams);
-        $this->processResponse($response);
+        return $this->invokeApi('POST', 'SELECT_USERS', ['form_params' => $requestParams]);
     }
 
-    protected function unSuspendAccount(string $username): void
+    /**
+     * @param string $username
+     * @return array
+     * @throws \Exception
+     */
+    protected function unSuspendAccount(string $username): array
     {
         $requestParams = [
-            'user' => $username,
+            'select0' => $username,
+            'dounsuspend' => 'anything',
         ];
 
-        $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'unsuspendreseller', $requestParams, ['timeout' => 240])
-            : $this->makeApiCall('POST', 'unsuspendacct', $requestParams);
-        $this->processResponse($response);
+        return $this->invokeApi('POST', 'SELECT_USERS', ['form_params' => $requestParams]);
     }
 
     protected function deleteAccount(string $username): void
@@ -589,7 +607,7 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         $result = $this->rawRequest($method, '/CMD_API_' . $command, $options);
         if (!empty($result['error'])) {
-            throw new \Exception("$method to $command failed: $result[details] ($result[text])");
+            throw new \Exception("{$result['text']} ({$result['details']}) on $method to /CMD_API_$command");
         }
         return Conversion::sanitizeArray($result);
     }
