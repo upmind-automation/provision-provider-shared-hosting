@@ -77,7 +77,6 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function create(CreateParams $params): AccountInfo
     {
-        \Log::debug($params);
         if ($params->as_reseller) {
             return $this->createReseller($params);
         }
