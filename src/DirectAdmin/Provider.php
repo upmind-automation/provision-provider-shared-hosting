@@ -292,6 +292,11 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Account suspended');
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         $this->unSuspendAccount($params->username);
@@ -300,15 +305,20 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Account unsuspended');
     }
 
+    /**
+     * @param ChangePasswordParams $params
+     * @return EmptyResult
+     * @throws \Exception
+     */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        $user = $params->username;
-        $password = $params->password;
-        $requestParams = compact('user', 'password');
+        $requestParams = [
+            'username' => $params->username,
+            'passwd' => $params->password,
+            'passwd2' => $params->password,
+        ];
 
-        $response = $this->makeApiCall('POST', 'passwd', $requestParams);
-        $this->processResponse($response);
-
+        $this->invokeApi('POST', 'USER_PASSWD', ['form_params' => $requestParams]);
         return $this->emptyResult('Password changed');
     }
 
@@ -394,7 +404,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setReseller($reseller)
             ->setServerHostname($this->configuration->hostname)
             ->setPackageName($accSummary['package'])
-            ->setSuspended(boolval($accSummary['suspended']))
+            ->setSuspended(!($accSummary['suspended'] == 'no'))
             ->setSuspendReason($suspendReason)
             ->setIp($accSummary['ip'])
             ->setNameservers($nameServers);
