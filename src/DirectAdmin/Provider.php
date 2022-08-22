@@ -367,7 +367,7 @@ class Provider extends SharedHosting implements ProviderInterface
             }
         }
 
-        $suspendReason = (isset($accSummary['suspendreason']) && $accSummary['suspendreason'] !== 'not suspended')? $accSummary['suspendreason'] : null;
+        $suspendReason = (isset($accSummary['suspended_reason']) && $accSummary['suspended_reason'] !== 'not suspended')? $accSummary['suspended_reason'] : null;
         $reseller = ($accSummary['usertype'] == 'reseller')? true : (($accSummary['usertype'] == 'user')? false : null);
         return AccountInfo::create()
             ->setMessage('Account info retrieved')
