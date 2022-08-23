@@ -75,7 +75,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 'Content-Type' => 'multipart/form-data',
             ],
             'http_errors' => true,
-            'handler' => $this->getGuzzleHandlerStack(true),
+            'handler' => $this->getGuzzleHandlerStack(false),
             'base_uri' => sprintf('https://%s:2222/api/login', $this->configuration->hostname),
             'auth' => [$this->configuration->username, $this->configuration->password],
         ]);
@@ -251,33 +251,24 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->getAccountInfo($params->username);
     }
 
+    /**
+     * @param ChangePackageParams $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
-        $isReseller = $this->userIsReseller($params->username);
+        $accSummary = $this->invokeApi('GET', 'SHOW_USER_CONFIG', ['query' => ['user' => $params->username]]);
+        $command = ($accSummary['usertype'] == 'reseller')? 'MODIFY_RESELLER' : 'MODIFY_USER';
 
-        if ($params->as_reseller) {
-            if (!$isReseller) {
-                if (!$this->canGrantReseller()) {
-                    return $this->errorResult('Configuration lacks sufficient privileges to create resellers');
-                }
-
-                $this->grantReseller(GrantResellerParams::create($params));
-            }
-
-            $this->changeResellerOptions($params->username, $params->reseller_options ?? new ResellerOptionParams());
-        } else {
-            if ($isReseller) {
-                $this->revokeReseller(AccountUsername::create($params));
-            }
-        }
-
-        $response = $this->makeApiCall('POST', 'changepackage', [
+        $requestParams = [
             'user' => $params->username,
-            'pkg' => $params->package_name
-        ]);
-        $this->processResponse($response);
+            'action' => 'package',
+            'package' => $params->package_name,
+        ];
 
-        return $this->getInfo(AccountUsername::create(['username' => $params->username]))
+        $this->invokeApi('POST', $command, ['form_params' => $requestParams]);
+        return $this->getAccountInfo($params->username)
             ->setMessage('Package/limits updated');
     }
 
