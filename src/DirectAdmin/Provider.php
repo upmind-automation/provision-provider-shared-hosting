@@ -75,7 +75,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 'Content-Type' => 'multipart/form-data',
             ],
             'http_errors' => true,
-            'handler' => $this->getGuzzleHandlerStack(false),
+            'handler' => $this->getGuzzleHandlerStack(true),
             'base_uri' => sprintf('https://%s:2222/api/login', $this->configuration->hostname),
             'auth' => [$this->configuration->username, $this->configuration->password],
         ]);
@@ -272,21 +272,41 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Package/limits updated');
     }
 
+    /**
+     * @param GetLoginUrlParams $params
+     * @return LoginUrl
+     * @throws \Exception
+     */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        $user = $params->username;
-        $whm = $params->is_reseller ?? false;
-        $service = $whm ? 'whostmgrd' : 'cpaneld';
-        $requestParams = compact('user', 'service');
 
-        $response = $this->makeApiCall('POST', 'create_user_session', $requestParams);
-        $data =  $this->processResponse($response);
+        $keyParams = [
+            'action' => 'create',
+            'type' => 'one_time_url',
+            'keyname' => $params->username,
+            'expiry' => '1h',
+            'max_uses' => 1,
+            'clear_key' => 'yes',
+            'allow_html' => 'yes',
+            'login_keys_notify_on_creation' => 0,
+            'user' => $this->configuration->username . '|' . $params->username,
+            'user' => $params->username,
+            'passwd' => $this->configuration->password,
+        ];
+
+
+        $result = $this->invokeApi('POST', 'LOGIN_KEYS', ['form_params' => $keyParams, 'auth' => [
+            $this->configuration->username . '|' . $params->username,
+            $this->configuration->password
+        ]]);
+
+        $exparationDate = Carbon::now()->addHour();
 
         return LoginUrl::create()
             ->setMessage('Login URL generated')
-            ->setLoginUrl($data['url'])
-            ->setForIp(null) //DirectAdmin login urls aren't tied to specific IDs
-            ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
+            ->setLoginUrl($result['details'])
+            ->setForIp($params->user_ip) //DirectAdmin login urls aren't tied to specific IDs
+            ->setExpires($exparationDate);
     }
 
 
@@ -645,8 +665,11 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         try {
             $response = $this->connection->request($method, $uri, $options);
+
             if (isset($response->getHeader('Content-Type')[0]) && $response->getHeader('Content-Type')[0] == 'text/html') {
-                throw new \Exception(sprintf('DirectAdmin API returned text/html to %s %s containing "%s"', $method, $uri, strip_tags($response->getBody()->getContents())));
+                //TODO
+//                throw new \Exception(sprintf('DirectAdmin API returned text/html to %s %s containing "%s"', $method, $uri, strip_tags($response->getBody()->getContents())));
+                throw new \Exception('Invalid request - data or access!');
             }
             $body = $response->getBody()->getContents();
             return Conversion::responseToArray($body);
