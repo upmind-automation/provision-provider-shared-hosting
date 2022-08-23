@@ -70,9 +70,16 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         $this->configuration = $configuration;
         $this->connection = new Client([
+            'headers' => [
+                'Accept' => 'application/json',
+                'Content-Type' => 'multipart/form-data',
+            ],
+            'http_errors' => true,
+            'handler' => $this->getGuzzleHandlerStack(true),
             'base_uri' => sprintf('https://%s:2222/api/login', $this->configuration->hostname),
             'auth' => [$this->configuration->username, $this->configuration->password],
         ]);
+
     }
 
     public static function aboutProvider(): AboutData
@@ -195,29 +202,42 @@ class Provider extends SharedHosting implements ProviderInterface
         return $info;
     }
 
+    /**
+     * @param GrantResellerParams $params
+     * @return ResellerPrivileges
+     * @throws \Exception
+     */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        $response = $this->makeApiCall('POST', 'setupreseller', [
-            'user' => $params->username,
-            'makeowner' => intval($params->owns_itself ?? false),
-        ]);
-        $this->processResponse($response);
+
+        $this->invokeApi('POST', 'convert-user-to-reseller', [
+            'json' => [
+                'account' => $params->username,
+                'creator' => $this->configuration->username,
+            ]
+        ], '/api/');
 
         return ResellerPrivileges::create()
             ->setMessage('Reseller privileges granted')
             ->setReseller(true);
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return ResellerPrivileges
+     * @throws \Exception
+     */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        $user = $params->username;
-        $requestParams = compact('user');
-
-        $response = $this->makeApiCall('POST', 'unsetupreseller', $requestParams);
-        $this->processResponse($response);
+        $this->invokeApi('POST', 'convert-reseller-to-user', [
+            'json' => [
+                'account' => $params->username,
+                'creator' => $this->configuration->username,
+            ]
+        ], '/api/');
 
         return ResellerPrivileges::create()
-            ->setMessage('Reseller privileges revoked')
+            ->setMessage('Reseller privileges granted')
             ->setReseller(true);
     }
 
@@ -607,15 +627,16 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
-     * @param $method
-     * @param $command
-     * @param $options
+     * @param string $method
+     * @param string $command
+     * @param array $options
+     * @param string $basePath
      * @return array
      * @throws \Exception
      */
-    public function invokeApi($method, $command, $options = []): array
+    public function invokeApi(string $method, string $command, array $options = [], string $basePath = '/CMD_API_'): array
     {
-        $result = $this->rawRequest($method, '/CMD_API_' . $command, $options);
+        $result = $this->rawRequest($method, $basePath . $command, $options);
         if (!empty($result['error'])) {
             throw new \Exception("{$result['text']} ({$result['details']}) on $method to /CMD_API_$command");
         }
@@ -623,22 +644,22 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
-     * @param $method
-     * @param $uri
-     * @param $options
+     * @param string $method
+     * @param string $uri
+     * @param array $options
      * @return array
      * @throws \Exception
      */
-    public function rawRequest($method, $uri, $options): array
+    public function rawRequest(string $method, string $uri, array $options): array
     {
         try {
             $response = $this->connection->request($method, $uri, $options);
-            if ($response->getHeader('Content-Type')[0] == 'text/html') {
+            if (isset($response->getHeader('Content-Type')[0]) && $response->getHeader('Content-Type')[0] == 'text/html') {
                 throw new \Exception(sprintf('DirectAdmin API returned text/html to %s %s containing "%s"', $method, $uri, strip_tags($response->getBody()->getContents())));
             }
             $body = $response->getBody()->getContents();
             return Conversion::responseToArray($body);
-        } catch (TransferException $exception) {
+        } catch (\Exception $exception) {
             // Rethrow anything that causes a network issue
             throw new \Exception(sprintf('%s request to %s failed', $method, $uri), 0, $exception);
         }
