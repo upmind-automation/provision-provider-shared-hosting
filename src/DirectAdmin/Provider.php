@@ -76,7 +76,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ],
             'http_errors' => true,
             'handler' => $this->getGuzzleHandlerStack(true),
-            'base_uri' => sprintf('https://%s:2222/api/login', $this->configuration->hostname),
+            'base_uri' => sprintf('https://%s:%s/api/login', $this->configuration->hostname, ($this->configuration->port)?? 2222),
             'auth' => [$this->configuration->username, $this->configuration->password],
         ]);
 
@@ -149,57 +149,32 @@ class Provider extends SharedHosting implements ProviderInterface
         });
     }
 
+    /**
+     * @param CreateParams $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function create(CreateParams $params): AccountInfo
     {
-        $username = $params->username ?: $this->generateUsername($params->domain);
-        $password = $params->password ?: Helper::generatePassword();
-        $domain = $params->domain;
-        $contactemail = $params->email;
-        $plan = $params->package_name;
-        $customip = $params->custom_ip;
-        $reseller = intval($params->as_reseller ?? false);
-
-        if ($params->owns_itself) {
-            $owner = $username;
-        } else {
-            $owner = $params->owner_username ?: $this->configuration->whm_username;
+        $command = 'ACCOUNT_USER';
+        if ($params->as_reseller) {
+            $command = 'ACCOUNT_RESELLER';
         }
+        $requestParams = [
+            'username' => $params->username,
+            'action' => 'create',
+            'email' => $params->email,
+            'passwd' => $params->password,
+            'passwd2' => $params->password,
+            'domain' => $params->domain,
+            'package' => $params->package_name, //TODO - there is no validation for package
+            'ip' => $params->custom_ip, //TODO - doesnt work for reseller because of system problem
+            'notify' => 'no',
+        ];
 
-        if ($reseller && !$this->canGrantReseller()) {
-            return $this->errorResult('Configuration lacks sufficient privileges to create resellers');
-        }
-
-        $requestParams = compact(
-            'username',
-            'password',
-            'domain',
-            'contactemail',
-            'plan',
-            'customip',
-            'owner',
-            'reseller'
-        );
-
-        $response = $this->makeApiCall('POST', 'createacct', $requestParams);
-        $this->processResponse($response, function ($responseData) {
-            return collect($responseData)->filter()->sortKeys()->all();
-        });
-
-        $info = $this->getAccountInfo($username)
-            ->setMessage('Account created');
-
-        if ($info->reseller && $params->reseller_options) {
-            try {
-                $this->changeResellerOptions($username, $params->reseller_options);
-            } catch (\Throwable $e) {
-                // clean-up
-                $this->deleteAccount($username);
-
-                throw $e;
-            }
-        }
-
-        return $info;
+        $this->invokeApi('POST', $command, ['form_params' => $requestParams]);
+        return $this->getAccountInfo($params->username)
+            ->setMessage('Package/limits updated');
     }
 
     /**
@@ -353,6 +328,11 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->emptyResult('Password changed');
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return EmptyResult
+     * @throws \Exception
+     */
     public function terminate(AccountUsername $params): EmptyResult
     {
         $this->deleteAccount($params->username);
@@ -392,21 +372,20 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->invokeApi('POST', 'SELECT_USERS', ['form_params' => $requestParams]);
     }
 
+    /**
+     * @param string $username
+     * @return void
+     * @throws \Exception
+     */
     protected function deleteAccount(string $username): void
     {
-        $response = $this->userIsReseller($username)
-            ? $this->makeApiCall(
-                'POST',
-                'terminatereseller',
-                ['user' => $username, 'terminatereseller' => true],
-                ['timeout' => 240]
-            )
-            : $this->makeApiCall(
-                'POST',
-                'removeacct',
-                ['user' => $username]
-            );
-        $this->processResponse($response);
+        $requestParams = [
+            'select0' => $username,
+            'delete' => 'yes',
+            'confirmed' => 'Confirm',
+        ];
+
+        $this->invokeApi('POST', 'SELECT_USERS', ['form_params' => $requestParams]);
     }
 
     /**

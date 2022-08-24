@@ -11,6 +11,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * DirectAdmin API credentials.
  *
  * @property-read string $hostname  server hostname
+ * @property-read integer $port  server port
  * @property-read string $username  API username
  * @property-read string $password  API secret
  */
@@ -20,6 +21,7 @@ class DirectAdminCredentials extends DataSet
     {
         return new Rules([
             'hostname' => ['required', 'domain_name'],
+            'port' => ['integer'],
             'username' => ['required', 'alpha_num'],
             'password' => ['required', 'string'],
         ]);
