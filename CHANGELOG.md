@@ -2,6 +2,13 @@
 
 All notable changes to the package will be documented in this file.
 
+## v4.2.1 - 2022-08-25
+
+- Increase WHMv1 createacct timeout to 240
+- Attempt to recover from create/suspend/unsuspend timeouts by checking the status
+  of the account and returning success if it appears the operation has succeeded
+  but is still in progress [#11](https://github.com/upmind-automation/provision-provider-shared-hosting/issues/11)
+
 ## v4.2 - 2022-07-12
 
 - Add support for optional hosting platform customer_id
