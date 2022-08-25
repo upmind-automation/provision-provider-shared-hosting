@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+
+## v4.2.2 - 2022-08-26
+
+- Treat WHMv1 HTTP 524 responses as regular request timeouts
+
 ## v4.2.1 - 2022-08-25
 
 - Increase WHMv1 createacct timeout to 240
