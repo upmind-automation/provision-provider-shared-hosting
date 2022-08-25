@@ -563,6 +563,15 @@ class Provider extends SharedHosting implements ProviderInterface
             return true;
         }
 
+        if ($e instanceof RequestException && $e->hasResponse()) {
+            $httpCode = $e->getResponse()->getStatusCode();
+
+            if ($httpCode === 524) {
+                /** @link https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#524 */
+                return true;
+            }
+        }
+
         if ($previous = $e->getPrevious()) {
             return $this->exceptionWasTimeout($previous);
         }
@@ -617,13 +626,35 @@ class Provider extends SharedHosting implements ProviderInterface
         $request = new Request($client, $method, $function, $params, $requestOptions);
 
         return $request->getPromise()->otherwise(function ($e) use ($function) {
+            $data = [
+                'function' => $function,
+            ];
+            $debug = [];
+
             if ($e instanceof RequestException) {
-                return $this->errorResult(
-                    $this->exceptionWasTimeout($e) ? 'WHM API Request Timeout' : 'WHM API Connection Error',
-                    ['function' => $function, 'error' => $e->getMessage()],
-                    ['response' => $e->hasResponse() ? $e->getResponse()->getBody()->__toString() : null],
-                    $e
-                );
+                if ($e->hasResponse()) {
+                    $response = $e->getResponse();
+                    $responseBody = $response->getBody()->__toString();
+                    $resultData = json_decode($responseBody, true);
+
+                    $message = sprintf('WHM API Request Error: %s', $response->getReasonPhrase() ?: 'Unknown Error');
+
+                    $data['http_code'] = $response->getStatusCode();
+                    $data['result_data'] = $resultData;
+
+                    if (!$resultData) {
+                        $debug['response_body'] = Str::limit($responseBody, 500);
+                    }
+                } else {
+                    $message = 'WHM API Connection Error';
+                    $data['error'] = $e->getMessage();
+                }
+
+                if ($this->exceptionWasTimeout($e)) {
+                    $message = 'WHM API Request Timeout';
+                }
+
+                return $this->errorResult($message, $data, $debug, $e);
             }
 
             throw $e;
@@ -650,8 +681,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
         return $this->errorResult(
             'WHM API Error: ' . $message,
-            compact('result_data'),
-            compact('http_code', 'result_meta')
+            compact('http_code', 'result_data'),
+            compact('result_meta')
         );
     }
 
@@ -676,7 +707,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ],
             'connect_timeout' => 10,
             'timeout' => 60,
-            'http_errors' => false,
+            'http_errors' => true,
             'allow_redirects' => false,
         ]);
     }
