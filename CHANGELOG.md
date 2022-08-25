@@ -5,7 +5,7 @@ All notable changes to the package will be documented in this file.
 
 ## v4.2.2 - 2022-08-26
 
-- Treat WHMv1 HTTP 524 responses as regular request timeouts
+- Treat WHMv1 HTTP 524 responses as regular request timeouts [#11](https://github.com/upmind-automation/provision-provider-shared-hosting/issues/11)
 
 ## v4.2.1 - 2022-08-25
 
