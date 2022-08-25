@@ -6,20 +6,18 @@ namespace Upmind\ProvisionProviders\SharedHosting\Enhance;
 
 use Carbon\Carbon;
 use GuzzleHttp\Client;
+use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Promise\Utils as PromiseUtils;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
-use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
-use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
+use Upmind\ProvisionBase\Helper;
+use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
-use Upmind\ProvisionProviders\SharedHosting\Enhance\Api\Request;
-use Upmind\ProvisionProviders\SharedHosting\Enhance\Api\Response;
 use Upmind\ProvisionBase\Result\ProviderResult;
+use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
@@ -32,6 +30,8 @@ use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerOptionParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
+use Upmind\ProvisionProviders\SharedHosting\Enhance\Api\Request;
+use Upmind\ProvisionProviders\SharedHosting\Enhance\Api\Response;
 use Upmind\ProvisionProviders\SharedHosting\Enhance\Data\EnhanceCredentials;
 
 class Provider extends SharedHosting implements ProviderInterface
@@ -64,20 +64,17 @@ class Provider extends SharedHosting implements ProviderInterface
      * @var Client
      */
     private $connection;
+    private $orgId;
+    /**
+     * @var mixed
+     */
+    private $cookie;
 
     public function __construct(EnhanceCredentials $configuration)
     {
         $this->configuration = $configuration;
-        $this->connection = new Client([
-            'headers' => [
-                'Accept' => 'application/json',
-                'Content-Type' => 'multipart/form-data',
-            ],
-            'http_errors' => true,
-            'handler' => $this->getGuzzleHandlerStack(true),
-            'base_uri' => sprintf('https://%s:%s/api/login', $this->configuration->hostname, ($this->configuration->port)?? 2222),
-            'auth' => [$this->configuration->username, $this->configuration->password],
-        ]);
+        $this->setClient();
+
     }
 
     public static function aboutProvider(): AboutData
@@ -226,9 +223,14 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setReseller(true);
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function getInfo(AccountUsername $params): AccountInfo
     {
-        return $this->getAccountInfo($params->username);
+        return $this->getAccountInfo($params->customer_id);
     }
 
     public function changePackage(ChangePackageParams $params): AccountInfo
@@ -355,10 +357,17 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
-    public function getAccountInfo(string $username): AccountInfo
+    /**
+     * @param string $customerId
+     * @return AccountInfo
+     * @throws \Exception
+     */
+    public function getAccountInfo(string $customerId): AccountInfo
     {
         $nameServers = [];
-        $accSummary = $this->invokeApi('GET', 'SHOW_USER_CONFIG', ['query' => ['user' => $username]]);
+        $accSummary = $this->invokeApi('GET', sprintf('/orgs/%s/customers/%s/subscriptions', $this->orgId, $customerId));
+
+        \Log::debug($accSummary);
 
         //TODO
         for ($i = 1; $i < self::MAX_NAMESERVERS; $i++) {
@@ -367,18 +376,18 @@ class Provider extends SharedHosting implements ProviderInterface
             }
         }
 
-        $suspendReason = (isset($accSummary['suspended_reason']) && $accSummary['suspended_reason'] !== 'not suspended')? $accSummary['suspended_reason'] : null;
-        $reseller = ($accSummary['usertype'] == 'reseller')? true : (($accSummary['usertype'] == 'user')? false : null);
+        $info = $accSummary['items'][0];
+
         return AccountInfo::create()
             ->setMessage('Account info retrieved')
-            ->setUsername($accSummary['username'])
-            ->setDomain($accSummary['domain'])
-            ->setReseller($reseller)
+            ->setUsername($info['subscriberId'])
+            ->setDomain($this->configuration->hostname)
+            ->setReseller(false)
             ->setServerHostname($this->configuration->hostname)
-            ->setPackageName($accSummary['package'])
-            ->setSuspended(!($accSummary['suspended'] == 'no'))
-            ->setSuspendReason($suspendReason)
-            ->setIp($accSummary['ip'])
+            ->setPackageName($info['status'])
+            ->setSuspended(!($info['status'] == 'active'))
+            ->setSuspendReason(null)
+            ->setIp(null)
             ->setNameservers($nameServers);
     }
 
@@ -563,30 +572,64 @@ class Provider extends SharedHosting implements ProviderInterface
         );
     }
 
-    protected function getClient(): Client
-    {
-        if ($this->client) {
-            return $this->client;
-        }
 
-        return $this->client = new Client([
-            'base_uri' => sprintf('https://%s:2087/json-api/', $this->configuration->hostname),
+    private function setClient(string $cookie = null): Client
+    {
+        $clientOptions = [
             'headers' => [
                 'Accept' => 'application/json',
-                'Authorization' => sprintf(
-                    'whm %s:%s',
-                    $this->configuration->whm_username,
-                    $this->configuration->api_key
-                ),
+                'Content-Type' => 'application/json',
             ],
-            'query' => [
-                'api.version' => 1
-            ],
-            'connect_timeout' => 10,
-            'timeout' => 60,
-            'http_errors' => false,
-            'allow_redirects' => false,
-        ]);
+            'http_errors' => true,
+            'handler' => $this->getGuzzleHandlerStack(true),
+            'base_uri' => sprintf('https://%s/api', $this->configuration->hostname),
+        ];
+
+        if ($cookie) {
+            $cookieArr = explode(';', $cookie);
+            if (isset($cookieArr[0])) {
+                $cookie = $cookieArr[0];
+            }
+            $clientOptions['headers']['Cookie'] = $cookie;
+
+            return $this->connection = new Client($clientOptions);
+        }
+
+        $this->connection = new Client($clientOptions);
+
+        $options = [
+            'json' => [
+                'email' => $this->configuration->email,
+                'password' => $this->configuration->password,
+            ]
+        ];
+
+        $response = $this->connection->request('POST',  sprintf('https://%s/api/login/sessions', $this->configuration->hostname), $options);
+
+        if (isset($response->getHeader('Content-Type')[0]) && $response->getHeader('Content-Type')[0] == 'text/html') {
+            throw new \Exception('Invalid request - data or access!');
+        }
+
+        $body = $response->getBody()->getContents();
+        $cookie = $response->getHeader('set-cookie')[0];
+
+        $response = json_decode($body, true);
+        if (isset($response['memberships'][0]['orgId'])) {
+            $this->orgId = $response['memberships'][0]['orgId'];
+        } else {
+            throw new \Exception(sprinf('Can not loggin to host %s', $this->configuration->hostname));
+        }
+
+        return $this->setClient($cookie);
+    }
+
+    protected function getClient(): Client
+    {
+        if ($this->connection) {
+            return $this->connection;
+        }
+
+        return $this->setClient();
     }
 
 
@@ -598,13 +641,13 @@ class Provider extends SharedHosting implements ProviderInterface
      * @return array
      * @throws \Exception
      */
-    public function invokeApi(string $method, string $command, array $options = [], string $basePath = '/CMD_API_'): array
+    public function invokeApi(string $method, string $command, array $options = [], string $basePath = '/api'): array
     {
         $result = $this->rawRequest($method, $basePath . $command, $options);
         if (!empty($result['error'])) {
             throw new \Exception("{$result['text']} ({$result['details']}) on $method to /CMD_API_$command");
         }
-        return Conversion::sanitizeArray($result);
+        return $result;
     }
 
     /**
@@ -617,7 +660,7 @@ class Provider extends SharedHosting implements ProviderInterface
     public function rawRequest(string $method, string $uri, array $options): array
     {
         try {
-            $response = $this->connection->request($method, $uri, $options);
+            $response = $this->getClient()->request($method, $uri, $options);
 
             if (isset($response->getHeader('Content-Type')[0]) && $response->getHeader('Content-Type')[0] == 'text/html') {
                 //TODO
@@ -625,10 +668,11 @@ class Provider extends SharedHosting implements ProviderInterface
                 throw new \Exception('Invalid request - data or access!');
             }
             $body = $response->getBody()->getContents();
-            return Conversion::responseToArray($body);
+            return json_decode($body, true);
         } catch (\Exception $exception) {
             // Rethrow anything that causes a network issue
             throw new \Exception(sprintf('%s request to %s failed', $method, $uri), 0, $exception);
         }
     }
+
 }
