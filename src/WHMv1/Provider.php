@@ -287,8 +287,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
         return LoginUrl::create()
             ->setMessage('Login URL generated')
-        ->setLoginUrl($data['url'])
-        ->setForIp(null) //cpanel login urls aren't tied to specific IDs
+            ->setLoginUrl($data['url'])
+            ->setForIp(null) //cpanel login urls aren't tied to specific IDs
             ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
     }
 
