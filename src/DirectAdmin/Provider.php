@@ -157,9 +157,7 @@ class Provider extends SharedHosting implements ProviderInterface
     public function create(CreateParams $params): AccountInfo
     {
         $command = 'ACCOUNT_USER';
-        if ($params->as_reseller) {
-            $command = 'ACCOUNT_RESELLER';
-        }
+
         $requestParams = [
             'username' => $params->username,
             'action' => 'create',
@@ -168,11 +166,22 @@ class Provider extends SharedHosting implements ProviderInterface
             'passwd2' => $params->password,
             'domain' => $params->domain,
             'package' => $params->package_name, //TODO - there is no validation for package
-            'ip' => $params->custom_ip, //TODO - doesnt work for reseller because of system problem
+            'ip' => $params->custom_ip, //TODO - ip doesnt work for reseller because in the CP it is a name not real ip
             'notify' => 'no',
         ];
 
         $this->invokeApi('POST', $command, ['form_params' => $requestParams]);
+
+        if ($params->as_reseller) {
+            $this->invokeApi('POST', 'convert-user-to-reseller', [
+                'json' => [
+                    'account' => $params->username,
+                    'creator' => $this->configuration->username,
+                ]
+            ], '/api/');
+        }
+
+
         return $this->getAccountInfo($params->username)
             ->setMessage('Package/limits updated');
     }
