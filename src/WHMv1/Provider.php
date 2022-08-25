@@ -479,6 +479,23 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
+     * Determine whether any error in the chain of the given exception was a
+     * request timeout.
+     */
+    protected function exceptionWasTimeout(Throwable $e): bool
+    {
+        if ($e instanceof ConnectException && Str::contains($e->getMessage(), 'Operation timed out')) {
+            return true;
+        }
+
+        if ($previous = $e->getPrevious()) {
+            return $this->exceptionWasTimeout($previous);
+        }
+
+        return false;
+    }
+
+    /**
      * @param string $method HTTP method
      * @param string $function WHMv1 API function name
      * @param array $params API function params
@@ -515,7 +532,7 @@ class Provider extends SharedHosting implements ProviderInterface
         return $request->getPromise()->otherwise(function ($e) use ($function) {
             if ($e instanceof RequestException) {
                 return $this->errorResult(
-                    'WHM API Connection Error',
+                    $this->exceptionWasTimeout($e) ? 'WHM API Request Timeout' : 'WHM API Connection Error',
                     ['function' => $function, 'error' => $e->getMessage()],
                     ['response' => $e->hasResponse() ? $e->getResponse()->getBody()->__toString() : null],
                     $e
