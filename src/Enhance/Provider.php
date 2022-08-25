@@ -42,6 +42,7 @@ class Provider extends SharedHosting implements ProviderInterface
      * @var int
      */
     protected const MAX_USERNAME_GENERATION_ATTEMPTS = 5;
+    const MAX_NAMESERVERS = 5;
 
     /**
      * @var EnhanceCredentials
@@ -59,10 +60,24 @@ class Provider extends SharedHosting implements ProviderInterface
      * @var string[]|null
      */
     protected $functions;
+    /**
+     * @var Client
+     */
+    private $connection;
 
     public function __construct(EnhanceCredentials $configuration)
     {
         $this->configuration = $configuration;
+        $this->connection = new Client([
+            'headers' => [
+                'Accept' => 'application/json',
+                'Content-Type' => 'multipart/form-data',
+            ],
+            'http_errors' => true,
+            'handler' => $this->getGuzzleHandlerStack(true),
+            'base_uri' => sprintf('https://%s:%s/api/login', $this->configuration->hostname, ($this->configuration->port)?? 2222),
+            'auth' => [$this->configuration->username, $this->configuration->password],
+        ]);
     }
 
     public static function aboutProvider(): AboutData
@@ -342,32 +357,29 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getAccountInfo(string $username): AccountInfo
     {
-        $promises = [
-            'accSummary' => $this->asyncApiCall('POST', 'accountsummary', ['user' => $username]),
-            'nameservers' => $this->asyncApiCall('GET', 'get_nameserver_config'),
-        ];
+        $nameServers = [];
+        $accSummary = $this->invokeApi('GET', 'SHOW_USER_CONFIG', ['query' => ['user' => $username]]);
 
-        $responses = PromiseUtils::all($promises)->wait();
+        //TODO
+        for ($i = 1; $i < self::MAX_NAMESERVERS; $i++) {
+            if (isset($accSummary['ns' . $i])) {
+                $nameServers[] = $accSummary['ns' .$i];
+            }
+        }
 
-        $accSummary = $this->processResponse($responses['accSummary'], function ($responseData) {
-            return collect(Arr::get($responseData, 'acct'))->collapse()->sortKeys()->all();
-        });
-
-        $nameservers = $this->processResponse($responses['nameservers'], function ($responseData) {
-            return Arr::get($responseData, 'nameservers');
-        });
-
+        $suspendReason = (isset($accSummary['suspended_reason']) && $accSummary['suspended_reason'] !== 'not suspended')? $accSummary['suspended_reason'] : null;
+        $reseller = ($accSummary['usertype'] == 'reseller')? true : (($accSummary['usertype'] == 'user')? false : null);
         return AccountInfo::create()
             ->setMessage('Account info retrieved')
-            ->setUsername($accSummary['user'])
+            ->setUsername($accSummary['username'])
             ->setDomain($accSummary['domain'])
-            ->setReseller($this->userIsReseller($username))
+            ->setReseller($reseller)
             ->setServerHostname($this->configuration->hostname)
-            ->setPackageName($accSummary['plan'])
-            ->setSuspended(boolval($accSummary['suspended']))
-            ->setSuspendReason($accSummary['suspendreason'] !== 'not suspended' ? $accSummary['suspendreason'] : null)
+            ->setPackageName($accSummary['package'])
+            ->setSuspended(!($accSummary['suspended'] == 'no'))
+            ->setSuspendReason($suspendReason)
             ->setIp($accSummary['ip'])
-            ->setNameservers($nameservers);
+            ->setNameservers($nameServers);
     }
 
     /**
@@ -575,5 +587,48 @@ class Provider extends SharedHosting implements ProviderInterface
             'http_errors' => false,
             'allow_redirects' => false,
         ]);
+    }
+
+
+    /**
+     * @param string $method
+     * @param string $command
+     * @param array $options
+     * @param string $basePath
+     * @return array
+     * @throws \Exception
+     */
+    public function invokeApi(string $method, string $command, array $options = [], string $basePath = '/CMD_API_'): array
+    {
+        $result = $this->rawRequest($method, $basePath . $command, $options);
+        if (!empty($result['error'])) {
+            throw new \Exception("{$result['text']} ({$result['details']}) on $method to /CMD_API_$command");
+        }
+        return Conversion::sanitizeArray($result);
+    }
+
+    /**
+     * @param string $method
+     * @param string $uri
+     * @param array $options
+     * @return array
+     * @throws \Exception
+     */
+    public function rawRequest(string $method, string $uri, array $options): array
+    {
+        try {
+            $response = $this->connection->request($method, $uri, $options);
+
+            if (isset($response->getHeader('Content-Type')[0]) && $response->getHeader('Content-Type')[0] == 'text/html') {
+                //TODO
+//                throw new \Exception(sprintf('DirectAdmin API returned text/html to %s %s containing "%s"', $method, $uri, strip_tags($response->getBody()->getContents())));
+                throw new \Exception('Invalid request - data or access!');
+            }
+            $body = $response->getBody()->getContents();
+            return Conversion::responseToArray($body);
+        } catch (\Exception $exception) {
+            // Rethrow anything that causes a network issue
+            throw new \Exception(sprintf('%s request to %s failed', $method, $uri), 0, $exception);
+        }
     }
 }
