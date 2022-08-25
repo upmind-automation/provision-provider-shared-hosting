@@ -163,7 +163,7 @@ class Provider extends SharedHosting implements ProviderInterface
             'reseller'
         );
 
-        $response = $this->makeApiCall('POST', 'createacct', $requestParams);
+        $response = $this->makeApiCall('POST', 'createacct', $requestParams, ['timeout' => 240]);
         $this->processResponse($response, function ($responseData) {
             return collect($responseData)->filter()->sortKeys()->all();
         });
