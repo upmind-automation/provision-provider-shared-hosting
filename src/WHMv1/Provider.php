@@ -12,6 +12,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils as PromiseUtils;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Throwable;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionBase\Helper;
@@ -163,17 +164,45 @@ class Provider extends SharedHosting implements ProviderInterface
             'reseller'
         );
 
-        $response = $this->makeApiCall('POST', 'createacct', $requestParams);
-        $this->processResponse($response, function ($responseData) {
-            return collect($responseData)->filter()->sortKeys()->all();
-        });
+        try {
+            $response = $this->makeApiCall('POST', 'createacct', $requestParams, ['timeout' => 240]);
+            $this->processResponse($response, function ($responseData) {
+                return collect($responseData)->filter()->sortKeys()->all();
+            });
+        } catch (Throwable $createException) {
+            if ($this->exceptionWasTimeout($createException)) {
+                try {
+                    // just in case WHM is running any weird post-create scripts, let's see if we can return success
+                    return $this->finishCreate($username, $params->reseller_options)
+                        ->setMessage('Account creation in progress')
+                            ->setDebug([
+                                'provider_exception' => ProviderResult::formatException(
+                                    $this->getFirstException($createException)
+                                ),
+                            ]);
+                } catch (Throwable $getInfoException) {
+                    if ($createException instanceof ProvisionFunctionError) {
+                        throw $createException->withData(array_merge($createException->getData(), [
+                            'get_info_error_after_timeout' => $getInfoException->getMessage(),
+                        ]));
+                    }
+                }
+            }
 
+            throw $createException;
+        }
+
+        return $this->finishCreate($username, $params->reseller_options);
+    }
+
+    protected function finishCreate(string $username, ?ResellerOptionParams $resellerOptions): AccountInfo
+    {
         $info = $this->getAccountInfo($username)
             ->setMessage('Account created');
 
-        if ($info->reseller && $params->reseller_options) {
+        if ($info->reseller && $resellerOptions) {
             try {
-                $this->changeResellerOptions($username, $params->reseller_options);
+                $this->changeResellerOptions($username, $resellerOptions);
             } catch (\Throwable $e) {
                 // clean-up
                 $this->deleteAccount($username);
@@ -265,7 +294,30 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function suspend(SuspendParams $params): AccountInfo
     {
-        $this->suspendAccount($params->username, $params->reason);
+        try {
+            $this->suspendAccount($params->username, $params->reason);
+        } catch (Throwable $suspendException) {
+            if ($this->exceptionWasTimeout($suspendException)) {
+                try {
+                    // just in case WHM is running any weird post-suspend scripts, let's see if we can return success
+                    $info = $this->getInfo(AccountUsername::create(['username' => $params->username]));
+
+                    if ($info->suspended) {
+                        // suspend succeeded
+                        return $info->setMessage('Account suspension in progress')
+                            ->setDebug([
+                                'provider_exception' => ProviderResult::formatException(
+                                    $this->getFirstException($suspendException)
+                                ),
+                            ]);
+                    }
+                } catch (Throwable $getInfoException) {
+                    // do nothing...
+                }
+            }
+
+            throw $suspendException;
+        }
 
         return $this->getInfo(AccountUsername::create(['username' => $params->username]))
             ->setMessage('Account suspended');
@@ -273,7 +325,30 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function unSuspend(AccountUsername $params): AccountInfo
     {
-        $this->unSuspendAccount($params->username);
+        try {
+            $this->unSuspendAccount($params->username);
+        } catch (Throwable $unsuspendException) {
+            if ($this->exceptionWasTimeout($unsuspendException)) {
+                try {
+                    // just in case WHM is running any weird post-unsuspend scripts, let's see if we can return success
+                    $info = $this->getInfo(AccountUsername::create(['username' => $params->username]));
+
+                    if (!$info->suspended) {
+                        // unsuspend succeeded
+                        return $info->setMessage('Account unsuspension in progress')
+                            ->setDebug([
+                                'provider_exception' => ProviderResult::formatException(
+                                    $this->getFirstException($unsuspendException)
+                                ),
+                            ]);
+                    }
+                } catch (Throwable $getInfoException) {
+                    // do nothing...
+                }
+            }
+
+            throw $unsuspendException;
+        }
 
         return $this->getInfo(AccountUsername::create(['username' => $params->username]))
             ->setMessage('Account unsuspended');
@@ -479,6 +554,35 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
+     * Determine whether any error in the chain of the given exception was a
+     * request timeout.
+     */
+    protected function exceptionWasTimeout(Throwable $e): bool
+    {
+        if ($e instanceof ConnectException && Str::contains($e->getMessage(), 'Operation timed out')) {
+            return true;
+        }
+
+        if ($previous = $e->getPrevious()) {
+            return $this->exceptionWasTimeout($previous);
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the first exception thrown in the given error chain.
+     */
+    protected function getFirstException(Throwable $e): Throwable
+    {
+        while ($previous = $e->getPrevious()) {
+            $e = $previous;
+        }
+
+        return $e;
+    }
+
+    /**
      * @param string $method HTTP method
      * @param string $function WHMv1 API function name
      * @param array $params API function params
@@ -515,7 +619,7 @@ class Provider extends SharedHosting implements ProviderInterface
         return $request->getPromise()->otherwise(function ($e) use ($function) {
             if ($e instanceof RequestException) {
                 return $this->errorResult(
-                    'WHM API Connection Error',
+                    $this->exceptionWasTimeout($e) ? 'WHM API Request Timeout' : 'WHM API Connection Error',
                     ['function' => $function, 'error' => $e->getMessage()],
                     ['response' => $e->hasResponse() ? $e->getResponse()->getBody()->__toString() : null],
                     $e
