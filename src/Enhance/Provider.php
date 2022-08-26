@@ -368,11 +368,6 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $accSummary = $this->invokeApi('GET', sprintf('/orgs/%s/customers/%s/subscriptions', $this->orgId, $customerId));
 
-        \Log::debug($accSummary);
-
-
-
-
         //TODO
 //        for ($i = 1; $i < self::MAX_NAMESERVERS; $i++) {
 //            if (isset($accSummary['ns' . $i])) {
@@ -380,6 +375,9 @@ class Provider extends SharedHosting implements ProviderInterface
 //            }
 //        }
 
+        if (!isset($accSummary['items'][0])) {
+            throw new \Exception('Missing subscription for this customer!');
+        }
         $info = $accSummary['items'][0];
         $domainName = $this->getDomainName($info['id']);
 
@@ -393,7 +391,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setDomain($domainName)
             ->setReseller(false)
             ->setServerHostname($this->configuration->hostname)
-            ->setPackageName($info['status'])
+            ->setPackageName($info['planName'])
             ->setSuspended(!($info['status'] == 'active'))
             ->setSuspendReason(null)
             ->setIp(null)
