@@ -219,32 +219,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
-        $isReseller = $this->userIsReseller($params->username);
-
-        if ($params->as_reseller) {
-            if (!$isReseller) {
-                if (!$this->canGrantReseller()) {
-                    return $this->errorResult('Configuration lacks sufficient privileges to create resellers');
-                }
-
-                $this->grantReseller(GrantResellerParams::create($params));
-            }
-
-            $this->changeResellerOptions($params->username, $params->reseller_options ?? new ResellerOptionParams());
-        } else {
-            if ($isReseller) {
-                $this->revokeReseller(AccountUsername::create($params));
-            }
-        }
-
-        $response = $this->makeApiCall('POST', 'changepackage', [
-            'user' => $params->username,
-            'pkg' => $params->package_name
-        ]);
-        $this->processResponse($response);
-
-        return $this->getInfo(AccountUsername::create(['username' => $params->username]))
-            ->setMessage('Package/limits updated');
+        throw new \Exception('Method not supported!', 401);
     }
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
@@ -283,14 +258,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        $user = $params->username;
-        $password = $params->password;
-        $requestParams = compact('user', 'password');
-
-        $response = $this->makeApiCall('POST', 'passwd', $requestParams);
-        $this->processResponse($response);
-
-        return $this->emptyResult('Password changed');
+        throw new \Exception('Method not supported!', 401);
     }
 
     public function terminate(AccountUsername $params): EmptyResult
