@@ -365,23 +365,32 @@ class Provider extends SharedHosting implements ProviderInterface
     public function getAccountInfo(string $customerId): AccountInfo
     {
         $nameServers = [];
+
         $accSummary = $this->invokeApi('GET', sprintf('/orgs/%s/customers/%s/subscriptions', $this->orgId, $customerId));
 
         \Log::debug($accSummary);
 
+
+
+
         //TODO
-        for ($i = 1; $i < self::MAX_NAMESERVERS; $i++) {
-            if (isset($accSummary['ns' . $i])) {
-                $nameServers[] = $accSummary['ns' .$i];
-            }
-        }
+//        for ($i = 1; $i < self::MAX_NAMESERVERS; $i++) {
+//            if (isset($accSummary['ns' . $i])) {
+//                $nameServers[] = $accSummary['ns' .$i];
+//            }
+//        }
 
         $info = $accSummary['items'][0];
+        $domainName = $this->getDomainName($info['id']);
+
+        if (!$domainName) {
+            $domainName = $this->configuration->hostname;
+        }
 
         return AccountInfo::create()
             ->setMessage('Account info retrieved')
             ->setUsername($info['subscriberId'])
-            ->setDomain($this->configuration->hostname)
+            ->setDomain($domainName)
             ->setReseller(false)
             ->setServerHostname($this->configuration->hostname)
             ->setPackageName($info['status'])
@@ -660,7 +669,17 @@ class Provider extends SharedHosting implements ProviderInterface
     public function rawRequest(string $method, string $uri, array $options): array
     {
         try {
-            $response = $this->getClient()->request($method, $uri, $options);
+            if ($method == 'GET') {
+                $key = \GuzzleHttp\RequestOptions::QUERY;
+            } else {
+                $key = \GuzzleHttp\RequestOptions::JSON;
+            }
+
+            $params = [
+                $key => $options
+            ];
+
+            $response = $this->getClient()->request($method, $uri, $params);
 
             if (isset($response->getHeader('Content-Type')[0]) && $response->getHeader('Content-Type')[0] == 'text/html') {
                 //TODO
@@ -673,6 +692,26 @@ class Provider extends SharedHosting implements ProviderInterface
             // Rethrow anything that causes a network issue
             throw new \Exception(sprintf('%s request to %s failed', $method, $uri), 0, $exception);
         }
+    }
+
+    private function getDomainName(int $subscriptionId): string
+    {
+        $domainName = '';
+        $params = [
+            'sortBy' => 'createdAt',
+            'sortOrder' => 'asc',
+            'recursion' => 'infinite',
+            'status' => 'active',
+            'subscriptionId' => $subscriptionId
+        ];
+
+        $websites = $this->invokeApi('GET', sprintf('/orgs/%s/websites', $this->orgId), $params);
+
+        if (isset($websites['items'][0]['domain']['domain'])) {
+            $domainName = $websites['items'][0]['domain']['domain'];
+        }
+
+        return $domainName;
     }
 
 }
