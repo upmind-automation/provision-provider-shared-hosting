@@ -288,7 +288,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function terminate(AccountUsername $params): EmptyResult
     {
-        $this->deleteAccount($params->username);
+        $this->deleteAccount($params->customer_id);
 
         return $this->emptyResult('Account deleted');
     }
@@ -321,21 +321,9 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->invokeApi('PATCH','/orgs/' . $customerId, $requestParams);
     }
 
-    protected function deleteAccount(string $username): void
+    protected function deleteAccount(string $customerId): void
     {
-        $response = $this->userIsReseller($username)
-            ? $this->makeApiCall(
-                'POST',
-                'terminatereseller',
-                ['user' => $username, 'terminatereseller' => true],
-                ['timeout' => 240]
-            )
-            : $this->makeApiCall(
-                'POST',
-                'removeacct',
-                ['user' => $username]
-            );
-        $this->processResponse($response);
+        $this->invokeApi('DELETE', sprintf('/orgs/%s', $customerId));
     }
 
     /**
