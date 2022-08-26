@@ -199,28 +199,12 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        $response = $this->makeApiCall('POST', 'setupreseller', [
-            'user' => $params->username,
-            'makeowner' => intval($params->owns_itself ?? false),
-        ]);
-        $this->processResponse($response);
-
-        return ResellerPrivileges::create()
-            ->setMessage('Reseller privileges granted')
-            ->setReseller(true);
+        throw new \Exception('Method not supported!', 401);
     }
 
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        $user = $params->username;
-        $requestParams = compact('user');
-
-        $response = $this->makeApiCall('POST', 'unsetupreseller', $requestParams);
-        $this->processResponse($response);
-
-        return ResellerPrivileges::create()
-            ->setMessage('Reseller privileges revoked')
-            ->setReseller(true);
+        throw new \Exception('Method not supported!', 401);
     }
 
     /**
