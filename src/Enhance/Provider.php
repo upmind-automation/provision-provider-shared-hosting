@@ -240,19 +240,44 @@ class Provider extends SharedHosting implements ProviderInterface
 //            ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
     }
 
+    /**
+     * @param SuspendParams $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function suspend(SuspendParams $params): AccountInfo
     {
-        $this->suspendAccount($params->username, $params->reason);
+        $customerName = '';
+        $this->suspendAccount($params->customer_id);
+        $accountInfo = $this->invokeApi('GET', sprintf('/orgs/%s/customers', $this->orgId, $params->customer_id));
+        foreach ($accountInfo['items'] as $customer) {
+            if ($customer['id'] == $params->customer_id) {
+             $customerName = $customer['name'];
+            }
+        }
 
-        return $this->getInfo(AccountUsername::create(['username' => $params->username]))
+        return $this->getInfo(AccountUsername::create(['username' => $customerName, 'customer_id' => $params->customer_id]))
             ->setMessage('Account suspended');
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
-        $this->unSuspendAccount($params->username);
 
-        return $this->getInfo(AccountUsername::create(['username' => $params->username]))
+        $customerName = '';
+        $this->unSuspendAccount($params->customer_id);
+        $accountInfo = $this->invokeApi('GET', sprintf('/orgs/%s/customers', $this->orgId, $params->customer_id));
+        foreach ($accountInfo['items'] as $customer) {
+            if ($customer['id'] == $params->customer_id) {
+                $customerName = $customer['name'];
+            }
+        }
+
+        return $this->getInfo(AccountUsername::create(['username' => $customerName, 'customer_id' => $params->customer_id]))
             ->setMessage('Account unsuspended');
     }
 
@@ -268,29 +293,32 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->emptyResult('Account deleted');
     }
 
-    protected function suspendAccount(string $username, ?string $reason = null): void
+    /**
+     * @param string $customerId
+     * @return void
+     * @throws \Exception
+     */
+    protected function suspendAccount(string $customerId): void
     {
         $requestParams = [
-            'user' => $username,
-            'reason' => $reason,
+            'isSuspended' => true
         ];
 
-        $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'suspendreseller', $requestParams, ['timeout' => 240])
-            : $this->makeApiCall('POST', 'suspendacct', $requestParams);
-        $this->processResponse($response);
+        $this->invokeApi('PATCH','/orgs/' . $customerId, $requestParams);
     }
 
-    protected function unSuspendAccount(string $username): void
+    /**
+     * @param string $customerId
+     * @return void
+     * @throws \Exception
+     */
+    protected function unSuspendAccount(string $customerId): void
     {
         $requestParams = [
-            'user' => $username,
+            'isSuspended' => false
         ];
 
-        $response = $this->userIsReseller($username)
-            ? $this->makeApiCall('POST', 'unsuspendreseller', $requestParams, ['timeout' => 240])
-            : $this->makeApiCall('POST', 'unsuspendacct', $requestParams);
-        $this->processResponse($response);
+        $this->invokeApi('PATCH','/orgs/' . $customerId, $requestParams);
     }
 
     protected function deleteAccount(string $username): void
@@ -318,9 +346,9 @@ class Provider extends SharedHosting implements ProviderInterface
     public function getAccountInfo(string $customerId): AccountInfo
     {
         $nameServers = [];
+        $plan = [];
 
-        $accSummary = $this->invokeApi('GET', sprintf('/orgs/%s/customers/%s/subscriptions', $this->orgId, $customerId));
-
+        $accSummary = $this->invokeApi('GET', sprintf('/orgs/%s', $customerId));
         //TODO
 //        for ($i = 1; $i < self::MAX_NAMESERVERS; $i++) {
 //            if (isset($accSummary['ns' . $i])) {
@@ -328,24 +356,20 @@ class Provider extends SharedHosting implements ProviderInterface
 //            }
 //        }
 
-        if (!isset($accSummary['items'][0])) {
-            throw new \Exception('Missing subscription for this customer!');
-        }
-        $info = $accSummary['items'][0];
-        $domainName = $this->getDomainName($info['id']);
+        $domains = $this->invokeApi('GET', sprintf('/orgs/%s/domains', $customerId));
 
-        if (!$domainName) {
-            $domainName = $this->configuration->hostname;
+        if ($accSummary['subscriptionsCount'] > 0) {
+            $plan = $this->invokeApi('GET', sprintf('/orgs/%s/customers/%s/subscriptions', $this->orgId, $customerId));
         }
 
         return AccountInfo::create()
             ->setMessage('Account info retrieved')
-            ->setUsername($info['subscriberId'])
-            ->setDomain($domainName)
+            ->setUsername($accSummary['name'])
+            ->setDomain($domains['items'][0]['name']?? $this->configuration->hostname)
             ->setReseller(false)
             ->setServerHostname($this->configuration->hostname)
-            ->setPackageName($info['planName'])
-            ->setSuspended(!($info['status'] == 'active'))
+            ->setPackageName($plan['items'][0]['planName']?? $accSummary['name'])
+            ->setSuspended(!($accSummary['status'] == 'active'))
             ->setSuspendReason(null)
             ->setIp(null)
             ->setNameservers($nameServers);
@@ -638,7 +662,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 throw new \Exception('Invalid request - data or access!');
             }
             $body = $response->getBody()->getContents();
-            return json_decode($body, true);
+            return json_decode($body, true)?? [];
         } catch (\Exception $exception) {
             // Rethrow anything that causes a network issue
             throw new \Exception(sprintf('%s request to %s failed', $method, $uri), 0, $exception);
