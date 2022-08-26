@@ -249,19 +249,20 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        $user = $params->username;
-        $whm = $params->is_reseller ?? false;
-        $service = $whm ? 'whostmgrd' : 'cpaneld';
-        $requestParams = compact('user', 'service');
-
-        $response = $this->makeApiCall('POST', 'create_user_session', $requestParams);
-        $data =  $this->processResponse($response);
-
-        return LoginUrl::create()
-            ->setMessage('Login URL generated')
-            ->setLoginUrl($data['url'])
-            ->setForIp(null) //cpanel login urls aren't tied to specific IDs
-            ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
+        throw new \Exception('Method not supported!', 401);
+//        $user = $params->username;
+//        $whm = $params->is_reseller ?? false;
+//        $service = $whm ? 'whostmgrd' : 'cpaneld';
+//        $requestParams = compact('user', 'service');
+//
+//        $response = $this->makeApiCall('POST', 'create_user_session', $requestParams);
+//        $data =  $this->processResponse($response);
+//
+//        return LoginUrl::create()
+//            ->setMessage('Login URL generated')
+//            ->setLoginUrl($data['url'])
+//            ->setForIp(null) //cpanel login urls aren't tied to specific IDs
+//            ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
     }
 
     public function suspend(SuspendParams $params): AccountInfo
