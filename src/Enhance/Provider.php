@@ -261,6 +261,11 @@ class Provider extends SharedHosting implements ProviderInterface
         throw new \Exception('Method not supported!', 401);
     }
 
+    /**
+     * @param AccountUsername $params
+     * @return EmptyResult
+     * @throws \Exception
+     */
     public function terminate(AccountUsername $params): EmptyResult
     {
         $this->deleteAccount($params->customer_id);
