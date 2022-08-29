@@ -144,57 +144,32 @@ class Provider extends SharedHosting implements ProviderInterface
         });
     }
 
+    /**
+     * @param CreateParams $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function create(CreateParams $params): AccountInfo
     {
-        $username = $params->username ?: $this->generateUsername($params->domain);
-        $password = $params->password ?: Helper::generatePassword();
-        $domain = $params->domain;
-        $contactemail = $params->email;
-        $plan = $params->package_name;
-        $customip = $params->custom_ip;
-        $reseller = intval($params->as_reseller ?? false);
-
-        if ($params->owns_itself) {
-            $owner = $username;
-        } else {
-            $owner = $params->owner_username ?: $this->configuration->whm_username;
+        if($this->isMemberExists($params->email)) {
+            throw new \Exception(sprintf('Account with email %s exists!', $params->email));
         }
 
-        if ($reseller && !$this->canGrantReseller()) {
-            return $this->errorResult('Configuration lacks sufficient privileges to create resellers');
+        if ($params->password == null ) {
+            throw new \Exception('For that service password is required for registration!');
         }
 
-        $requestParams = compact(
-            'username',
-            'password',
-            'domain',
-            'contactemail',
-            'plan',
-            'customip',
-            'owner',
-            'reseller'
-        );
+        $customerId = $this->createCustomer($params->username);
 
-        $response = $this->makeApiCall('POST', 'createacct', $requestParams);
-        $this->processResponse($response, function ($responseData) {
-            return collect($responseData)->filter()->sortKeys()->all();
-        });
+        $planId = $this->getPlanId($params->package_name);
 
-        $info = $this->getAccountInfo($username)
+        $this->setSubscription($customerId, $planId);
+
+        $loginId = $this->createLogin($customerId, $params->username, $params->email, $params->password);
+        $this->createMember($customerId, $loginId);
+
+        return $this->getAccountInfo($customerId)
             ->setMessage('Account created');
-
-        if ($info->reseller && $params->reseller_options) {
-            try {
-                $this->changeResellerOptions($username, $params->reseller_options);
-            } catch (\Throwable $e) {
-                // clean-up
-                $this->deleteAccount($username);
-
-                throw $e;
-            }
-        }
-
-        return $info;
     }
 
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
@@ -362,6 +337,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setIp(null)
             ->setNameservers($nameServers);
     }
+
 
     /**
      * Update the given reseller's ACL and/or account/resource limits.
@@ -675,6 +651,137 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         return $domainName;
+    }
+
+    /**
+     * @param string $email
+     * @return bool
+     * @throws \Exception
+     */
+    private function isMemberExists(string $email): bool
+    {
+        $params = [
+            'search' => $email
+        ];
+        $result = $this->invokeApi('GET', sprintf('/orgs/%s/members', $this->orgId), $params);
+
+        if (isset($result['total']) && $result['total'] != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param string $username
+     * @return string
+     * @throws \Exception
+     */
+    private function createCustomer(string $username): string
+    {
+        $params = [
+            'name' => $username
+        ];
+
+        $result = $this->invokeApi('POST', sprintf('/orgs/%s/customers', $this->orgId), $params);
+
+        if (!isset($result['id'])) {
+            throw new \Exception('Can not create customer!');
+        }
+        return $result['id'];
+    }
+
+    /**
+     * @param string $packageName
+     * @return int
+     * @throws \Exception
+     */
+    private function getPlanId(string $packageName): int
+    {
+        $params = [
+            'limit' => 10
+        ];
+        $planId = 0;
+
+        while (true) {
+
+            $result = $this->invokeApi('GET', sprintf('/orgs/%s/plans', $this->orgId), $params);
+
+            if (isset($result['total']) && $result['total'] == 0) {
+                throw new \Exception(sprintf('Plan %s does not exist!', $packageName));
+            }
+
+            foreach ($result['items'] as $item) {
+                if ($item['name'] == $packageName) {
+                    $planId = $item['id'];
+                    break 2;
+                }
+            }
+        }
+
+        return $planId;
+    }
+
+    /**
+     * @param string $customerId
+     * @param int $planId
+     * @return void
+     * @throws \Exception
+     */
+    private function setSubscription(string $customerId, int $planId): void
+    {
+        $params = [
+            'planId' => $planId
+        ];
+        $result = $this->invokeApi('POST', sprintf('/orgs/%s/customers/%s/subscriptions', $this->orgId, $customerId), $params);
+
+        if (!isset($result['id'])) {
+            throw new \Exception('Can not create subscription!');
+        }
+    }
+
+    /**
+     * @param string $customerId
+     * @param string $username
+     * @param string $email
+     * @param string $password
+     * @return string
+     * @throws \Exception
+     */
+    private function createLogin(string $customerId, string $username, string $email, string $password): string
+    {
+        $params = [
+            'email' => $email,
+            'password' => $password,
+            'name' => $username
+        ];
+        $result = $this->invokeApi('POST', '/logins?orgId=' . $customerId, $params);
+        if (!isset($result['id'])) {
+            throw new \Exception('Can not create login!');
+        }
+
+        return $result['id'];
+    }
+
+    /**
+     * @param string $customerId
+     * @param string $loginId
+     * @return string
+     * @throws \Exception
+     */
+    private function createMember(string $customerId, string $loginId): string
+    {
+        $params = [
+            'loginId' => $loginId,
+            'roles' => ['Owner'],
+        ];
+
+        $result = $this->invokeApi('POST', sprintf('/orgs/%s/members', $customerId), $params);
+        if (!isset($result['id'])) {
+            throw new \Exception('Can not create member!');
+        }
+
+        return $result['id'];
     }
 
 }
