@@ -296,6 +296,11 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->invokeApi('PATCH','/orgs/' . $customerId, $requestParams);
     }
 
+    /**
+     * @param string $customerId
+     * @return void
+     * @throws \Exception
+     */
     protected function deleteAccount(string $customerId): void
     {
         $this->invokeApi('DELETE', sprintf('/orgs/%s', $customerId));
