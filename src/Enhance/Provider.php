@@ -192,9 +192,21 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->getAccountInfo($params->customer_id);
     }
 
+    /**
+     * @param ChangePackageParams $params
+     * @return AccountInfo
+     * @throws \Exception
+     */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
-        throw new \Exception('Method not supported!', 401);
+        $planId = $this->getPlanId($params->package_name);
+        $paramsAip = [
+            'planId' => $planId
+        ];
+
+        $this->invokeApi('PATCH', sprintf('/orgs/%s/subscriptions/%s', $params->customer_id, $params->username), $paramsAip);
+        return $this->getAccountInfo($params->customer_id)
+            ->setMessage('Changed plan!');
     }
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
@@ -792,6 +804,24 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         return $result['id'];
+    }
+
+    /**
+     * @param $username
+     * @return int
+     * @throws \Exception
+     */
+    private function getFirstSubscriptionId($username): int
+    {
+        $params = [];
+
+        $result = $this->invokeApi('GET', sprintf('/orgs/%s/subscriptions', $username), $params);
+
+        if (!isset($result['items'][0]['id'])) {
+            throw new \Exception('Can not create member!');
+        }
+
+        return $result['items'][0]['id'];
     }
 
 }
