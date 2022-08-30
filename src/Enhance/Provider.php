@@ -151,22 +151,15 @@ class Provider extends SharedHosting implements ProviderInterface
      */
     public function create(CreateParams $params): AccountInfo
     {
-        if($this->isMemberExists($params->email)) {
-            throw new \Exception(sprintf('Account with email %s exists!', $params->email));
-        }
-
-        if ($params->password == null ) {
-            throw new \Exception('For that service password is required for registration!');
-        }
-
         $customerId = $this->createCustomer($params->username);
 
         $planId = $this->getPlanId($params->package_name);
 
         $this->setSubscription($customerId, $planId);
 
-        $loginId = $this->createLogin($customerId, $params->username, $params->email, $params->password);
-        $this->createMember($customerId, $loginId);
+        //Login cannot become a member of an org in another realm
+//        $login = $this->invokeApi('GET', '/login', []);
+//        $this->createMember($customerId, $login['id']);
 
         return $this->getAccountInfo($customerId)
             ->setMessage('Account created');
@@ -349,7 +342,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
         return AccountInfo::create()
             ->setMessage('Account info retrieved')
-            ->setUsername($accSummary['name'])
+            ->setCustomerId($customerId)
+            ->setUsername((string)$plan['items'][0]['id'])
             ->setDomain($domains['items'][0]['name']?? $this->configuration->hostname)
             ->setReseller(false)
             ->setServerHostname($this->configuration->hostname)
