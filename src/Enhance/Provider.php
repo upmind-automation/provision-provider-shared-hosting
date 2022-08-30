@@ -228,7 +228,7 @@ class Provider extends SharedHosting implements ProviderInterface
     public function suspend(SuspendParams $params): AccountInfo
     {
         $customerName = '';
-        $this->suspendAccount($params->customer_id);
+        $this->suspendAccount($params->username, $params->customer_id);
         $accountInfo = $this->invokeApi('GET', sprintf('/orgs/%s/customers', $this->orgId, $params->customer_id));
         foreach ($accountInfo['items'] as $customer) {
             if ($customer['id'] == $params->customer_id) {
@@ -249,7 +249,7 @@ class Provider extends SharedHosting implements ProviderInterface
     {
 
         $customerName = '';
-        $this->unSuspendAccount($params->customer_id);
+        $this->unSuspendAccount($params->username, $params->customer_id);
         $accountInfo = $this->invokeApi('GET', sprintf('/orgs/%s/customers', $this->orgId, $params->customer_id));
         foreach ($accountInfo['items'] as $customer) {
             if ($customer['id'] == $params->customer_id) {
@@ -279,31 +279,33 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
+     * @param string $subscriptionId
      * @param string $customerId
      * @return void
      * @throws \Exception
      */
-    protected function suspendAccount(string $customerId): void
+    protected function suspendAccount(string $subscriptionId, string $customerId): void
     {
         $requestParams = [
             'isSuspended' => true
         ];
 
-        $this->invokeApi('PATCH','/orgs/' . $customerId, $requestParams);
+        $this->invokeApi('PATCH',sprintf('/orgs/%s/subscriptions/%s',$customerId, $subscriptionId) , $requestParams);
     }
 
     /**
+     * @param string $subscriptionId
      * @param string $customerId
      * @return void
      * @throws \Exception
      */
-    protected function unSuspendAccount(string $customerId): void
+    protected function unSuspendAccount(string $subscriptionId, string $customerId): void
     {
         $requestParams = [
             'isSuspended' => false
         ];
 
-        $this->invokeApi('PATCH','/orgs/' . $customerId, $requestParams);
+        $this->invokeApi('PATCH',sprintf('/orgs/%s/subscriptions/%s',$customerId, $subscriptionId) , $requestParams);
     }
 
     /**
