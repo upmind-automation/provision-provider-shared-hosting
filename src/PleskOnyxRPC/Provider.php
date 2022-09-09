@@ -493,6 +493,17 @@ class Provider extends SharedHosting implements ProviderInterface
                 $client
             );
 
+            $subscriptions = json_decode(json_encode($webSpaceInfo->data->{'subscriptions'}, JSON_PRETTY_PRINT), true);
+            $servicePlanRequest = [
+                'get' => [
+                    'filter' => [
+                        'guid' => $subscriptions['subscription']['plan']['plan-guid'],
+                    ],
+                ],
+            ];
+
+            $servicePlanInfo = $client->servicePlan()->request($servicePlanRequest);
+
             return AccountInfo::create(
                 [
                     // dont keep customer_id for now - bit of a rework required in order to allow multiple subscriptions
