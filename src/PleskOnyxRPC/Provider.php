@@ -916,9 +916,28 @@ class Provider extends SharedHosting implements ProviderInterface
         array $data = [],
         array $debugData = []
     ): void {
-        $message = $failedOperation . " failed: " . str_replace("\n", ' ', $e->getMessage());
+        $this->errorResult($this->getErrorMessage($e, $failedOperation), $data, $debugData, $e);
+    }
 
-        $this->errorResult($message, $data, $debugData, $e);
+    protected function getErrorMessage(Throwable $e, string $failedOperation = 'XML API request'): string
+    {
+        $message = sprintf('%s failed', $failedOperation);
+
+        if (!$e instanceof \PleskX\Api\Exception) {
+            return $message;
+        }
+
+        $reason = str_replace("\n", ' ', $e->getMessage());
+
+        if (Str::contains($reason, 'incorrect username or password')) {
+            $reason = 'Invalid auth credentials';
+        }
+
+        if (Str::contains($reason, 'Parser error')) {
+            $reason = 'Internal provider error';
+        }
+
+        return sprintf('%s: %s', $message, $reason);
     }
 
     protected function getClient(): Client
