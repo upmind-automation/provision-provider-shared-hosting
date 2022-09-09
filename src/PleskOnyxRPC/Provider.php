@@ -410,7 +410,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 ],
             ],
         ];
-        
+
         $client = $this->getClient();
 
         try {
@@ -418,8 +418,11 @@ class Provider extends SharedHosting implements ProviderInterface
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
             $webspaceInfo = $client->webspace()->request($webspaceRequest);
 
-
-            $domainNameServers = $this->extractNameServers((string)$webspaceInfo->data->gen_info->name, $domainInfo['customer']['get-domain-list']['result']['domains'], $client);
+            $domainNameServers = $this->extractNameServers(
+                (string)$webspaceInfo->data->gen_info->name,
+                $domainInfo['customer']['get-domain-list']['result']['domains'],
+                $client
+            );
 
             $subscriptions = json_decode(json_encode($webspaceInfo->data->{'subscriptions'}, JSON_PRETTY_PRINT), true);
             $servicePlanRequest = [
@@ -440,14 +443,13 @@ class Provider extends SharedHosting implements ProviderInterface
                     'domain' => (string)$webspaceInfo->data->gen_info->name,
                     'reseller' => false,
                     'server_hostname' => $this->configuration->hostname,
-                    'package_name' => (isset($servicePlanInfo->name))? (string)$servicePlanInfo->name : 'Custom',
+                    'package_name' => isset($servicePlanInfo->name) ? (string)$servicePlanInfo->name : 'Custom',
                     'suspended' => !((int)$webspaceInfo->data->gen_info->status === 0),
                     'suspend_reason' => null,
                     'ip' => (string)$webspaceInfo->data->gen_info->dns_ip_address,
                     'nameservers' => $domainNameServers,
                 ]
             );
-
         } catch (PleskException | PleskClientException | ProviderError $e) {
             return $this->handleException($e, 'Get customer stats');
         }
@@ -485,8 +487,11 @@ class Provider extends SharedHosting implements ProviderInterface
             $webSpaceInfo = $client->webspace()->request($webspaceRequest);
             $domainInfo = $client->reseller()->request($domainRequest, Client::RESPONSE_FULL);
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
-            $domainNameServers = $this->extractNameServers((string)$webSpaceInfo->data->gen_info->name, $domainInfo['reseller']['get-domain-list']['result']['domains'], $client);
-
+            $domainNameServers = $this->extractNameServers(
+                (string)$webSpaceInfo->data->gen_info->name,
+                $domainInfo['reseller']['get-domain-list']['result']['domains'],
+                $client
+            );
 
             return AccountInfo::create(
                 [
@@ -496,7 +501,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     'domain' => (string)$webSpaceInfo->data->gen_info->name,
                     'reseller' => true,
                     'server_hostname' => $this->configuration->hostname,
-                    'package_name' => (isset($servicePlanInfo->name))? (string)$servicePlanInfo->name : 'Custom',
+                    'package_name' => isset($servicePlanInfo->name) ? (string)$servicePlanInfo->name : 'Custom',
                     'suspended' => !((int)$webSpaceInfo->data->gen_info->status === 0),
                     'suspend_reason' => null,
                     'ip' => (string)$webSpaceInfo->data->gen_info->dns_ip_address,
@@ -960,8 +965,12 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param array $domainNameServers
      * @return array
      */
-    private function extractNameServers(string $domainName, array $domains, \PleskX\Api\Client $client, array $domainNameServers = []): array
-    {
+    private function extractNameServers(
+        string $domainName,
+        array $domains,
+        \PleskX\Api\Client $client,
+        array $domainNameServers = []
+    ): array {
         $uniqueArray = [];
         foreach ($domains as $domain) {
             if (!isset($domain['id'])) {
