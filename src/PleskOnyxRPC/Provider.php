@@ -840,8 +840,8 @@ class Provider extends SharedHosting implements ProviderInterface
         $username = substr(
             preg_replace('/^[^a-z]+/', '', preg_replace('/[^a-z0-9]/', '', strtolower($base))),
             0,
-            $this->getMaxUsernameLength()
-        );
+            $this->getMaxUsernameLength() - 1
+        ) . rand(1, 9);
 
         return $username;
 
