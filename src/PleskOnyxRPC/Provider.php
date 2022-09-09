@@ -901,7 +901,7 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         $hostname = $this->configuration->hostname;
         $port = $this->configuration->port ?: 8443;
-        $protocol = $this->configuration->protocol ?: 'https';
+        $protocol = !empty($this->configuration->protocol) ? $this->configuration->protocol : 'https';
         $path = ltrim($path, '/');
 
         return "{$protocol}://{$hostname}:{$port}/{$path}";
@@ -926,7 +926,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $hostname = $this->configuration->hostname;
         $port = $this->configuration->port ?: 8443;
-        $protocol = $this->configuration->protocol ?: 'https';
+        $protocol = !empty($this->configuration->protocol) ? $this->configuration->protocol : 'https';
 
         $client = new Client($hostname, $port, $protocol);
 
