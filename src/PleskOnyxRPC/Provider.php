@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC;
 
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionBase\Result\ProviderResult;
@@ -166,15 +167,8 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $e;
         }
 
-        return AccountInfo::create()
+        return $this->getInfo(new AccountUsername(['username' => $login]))
             ->setMessage('Account created')
-            ->setUsername($login)
-            ->setDomain($domain)
-            ->setReseller(false)
-            ->setServerHostname($this->configuration->hostname)
-            ->setIp($ip_address)
-            ->setPackageName($plan->name)
-            ->setSuspended(false)
             ->setDebug(@compact('customer', 'webspace'));
     }
 
@@ -300,15 +294,8 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $e;
         }
 
-        return AccountInfo::create()
-            ->setMessage('Reseller account created')
-            ->setUsername($login)
-            ->setDomain($domain)
-            ->setReseller(true)
-            ->setServerHostname($this->configuration->hostname)
-            ->setIp($ip_address)
-            ->setPackageName($params->package_name)
-            ->setSuspended(false)
+        return $this->getInfo(new AccountUsername(['username' => $login]))
+            ->setMessage('Account created')
             ->setDebug(@compact('customer', 'webspace'));
     }
 
@@ -447,7 +434,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return AccountInfo::create(
                 [
-                    'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
+                    // dont keep customer_id for now - bit of a rework required in order to allow multiple subscriptions
+                    // 'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
                     'username' => $username,
                     'domain' => (string)$webspaceInfo->data->gen_info->name,
                     'reseller' => false,
@@ -502,7 +490,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return AccountInfo::create(
                 [
-                    'customer_id' => (string)$webSpaceInfo->data->gen_info->{'owner-id'},
+                    // dont keep customer_id for now - bit of a rework required in order to allow multiple subscriptions
+                    // 'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
                     'username' => $username,
                     'domain' => (string)$webSpaceInfo->data->gen_info->name,
                     'reseller' => true,
