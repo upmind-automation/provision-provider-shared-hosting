@@ -590,14 +590,13 @@ class Provider extends SharedHosting implements ProviderInterface
         try {
             $sessionId = $client->server()->createSession($username, $user_ip);
             if ('windows' === $this->configuration->operating_system) {
-                $sessionKey = 'PHPSESSID';
+                $sessionKey = 'PLESKSESSID';
             } else {
                 // linux
-                $sessionKey = 'PLESKSESSID';
+                $sessionKey = 'PHPSESSID';
             }
 
-            $path = "/admin/customer/login/id/{$params->customer_id}/all/true";
-            $url = $this->getServerUrl($path);
+            $url = $this->getServerUrl("/enterprise/rsession_init.php?{$sessionKey}={$sessionId}");
 
             return LoginUrl::create()
                 ->setMessage('Session created')
