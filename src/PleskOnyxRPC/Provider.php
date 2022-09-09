@@ -134,6 +134,9 @@ class Provider extends SharedHosting implements ProviderInterface
         try {
             $plan = $client->servicePlan()->get('name', $plan);
         } catch (PleskException | PleskClientException | ProviderError $e) {
+            //cleanup customer
+            $client->customer()->delete('id', $customer->id);
+
             return $this->handleException($e, 'Get plan info');
         }
 
