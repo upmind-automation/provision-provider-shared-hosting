@@ -609,7 +609,8 @@ class Provider extends SharedHosting implements ProviderInterface
         $username = $params->username;
 
         if ($this->loginBelongsToReseller($username)) {
-            return $this->suspendReseller($username);
+            return $this->suspendReseller($username)
+                ->setSuspendReason($params->reason);
         }
 
         $requestParams = [
@@ -632,7 +633,8 @@ class Provider extends SharedHosting implements ProviderInterface
             $client->customer()->request($requestParams);
 
             return $this->getInfo(AccountUsername::create(['username' => $params->username]))
-            ->setMessage('Account suspended');
+                ->setMessage('Account suspended')
+                ->setSuspendReason($params->reason);
         } catch (PleskException | PleskClientException | ProviderError $e) {
             return $this->handleException($e, 'Suspend account');
         }
