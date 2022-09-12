@@ -493,17 +493,6 @@ class Provider extends SharedHosting implements ProviderInterface
                 $client
             );
 
-            $subscriptions = json_decode(json_encode($webSpaceInfo->data->{'subscriptions'}, JSON_PRETTY_PRINT), true);
-            $servicePlanRequest = [
-                'get' => [
-                    'filter' => [
-                        'guid' => $subscriptions['subscription']['plan']['plan-guid'],
-                    ],
-                ],
-            ];
-
-            $servicePlanInfo = $client->servicePlan()->request($servicePlanRequest);
-
             return AccountInfo::create(
                 [
                     // dont keep customer_id for now - bit of a rework required in order to allow multiple subscriptions
@@ -512,7 +501,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     'domain' => (string)$webSpaceInfo->data->gen_info->name,
                     'reseller' => true,
                     'server_hostname' => $this->configuration->hostname,
-                    'package_name' => isset($servicePlanInfo->name) ? (string)$servicePlanInfo->name : 'Custom',
+                    'package_name' => 'Reseller', // unclear where to get actual reseller plan name from
                     'suspended' => !((int)$webSpaceInfo->data->gen_info->status === 0),
                     'suspend_reason' => null,
                     'ip' => (string)$webSpaceInfo->data->gen_info->dns_ip_address,
