@@ -3,6 +3,10 @@
 All notable changes to the package will be documented in this file.
 
 
+## v4.2.3 - 2022-09-12
+
+- Fix PleskOnyxRPC provider
+
 ## v4.2.2 - 2022-08-26
 
 - Treat WHMv1 HTTP 524 responses as regular request timeouts [#11](https://github.com/upmind-automation/provision-provider-shared-hosting/issues/11)
