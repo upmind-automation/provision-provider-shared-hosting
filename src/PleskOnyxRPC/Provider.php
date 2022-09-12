@@ -88,7 +88,6 @@ class Provider extends SharedHosting implements ProviderInterface
         $passwd = $params->password ?: Helper::generatePassword();
         $pname = $params->customer_name ?? $login;
         $domain = $params->domain;
-        $plan = $params->package_name;
         $ip_address = $params->custom_ip;
 
         $client = $this->getClient();
@@ -133,7 +132,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         try {
-            $plan = $client->servicePlan()->get('name', $plan);
+            $plan = $this->getPlan($params->package_name);
         } catch (PleskException | PleskClientException | ProviderError $e) {
             //cleanup customer
             $client->customer()->delete('id', $customer->id);
@@ -872,22 +871,24 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
-     * @param string $name Name of the plan
+     * @param string $plan Id or Name of the plan
      * @param string $type Type of plan i.e., service or reseller
      *
      * @throws PleskException If plan doesn't exist
      *
      * @return XmlResponse
      */
-    protected function getPlan(string $name, string $type = 'service'): XmlResponse
+    protected function getPlan(string $plan, string $type = 'service'): XmlResponse
     {
         $operator = strtolower($type) . 'Plan';
 
+        $filter = is_numeric($plan)
+            ? ['id' => $plan]
+            : ['name' => $plan];
+
         $planRequest = [
             'get' => [
-                'filter' => [
-                    'name' => $name
-                ]
+                'filter' => $filter,
             ]
         ];
 
