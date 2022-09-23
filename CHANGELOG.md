@@ -2,6 +2,9 @@
 
 All notable changes to the package will be documented in this file.
 
+## v4.2.4 - 2022-09-23
+
+- Fix WHMv1\Provider::processResponse()
 
 ## v4.2.4 - 2022-09-23
 
