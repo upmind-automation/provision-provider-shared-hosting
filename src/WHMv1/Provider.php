@@ -678,7 +678,7 @@ class Provider extends SharedHosting implements ProviderInterface
             return $result_data;
         }
 
-        $data = ['http_code' => $http_code, 'result_data', $result_data => $result_data];
+        $data = ['http_code' => $http_code, 'result_data' => $result_data];
         $debug = ['result_meta' => $result_meta];
 
         if (empty($result_data)) {
