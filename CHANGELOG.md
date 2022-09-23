@@ -3,6 +3,11 @@
 All notable changes to the package will be documented in this file.
 
 
+## v4.2.4 - 2022-09-23
+
+- Improve debug data for WHMv1 error results when API response contains no parsable
+  result data
+
 ## v4.2.3 - 2022-09-12
 
 - Fix PleskOnyxRPC provider
