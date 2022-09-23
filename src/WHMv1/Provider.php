@@ -667,7 +667,6 @@ class Provider extends SharedHosting implements ProviderInterface
     ): array {
         $http_code = $response->getHttpCode();
         $message = $response->getMessage();
-        $result_body = $response->getBody();
         $result_data = $response->getBodyAssoc('data', []);
         $result_meta = $response->getBodyAssoc('metadata');
 
@@ -679,11 +678,14 @@ class Provider extends SharedHosting implements ProviderInterface
             return $result_data;
         }
 
-        return $this->errorResult(
-            'WHM API Error: ' . $message,
-            compact('http_code', 'result_data'),
-            compact('result_meta')
-        );
+        $data = ['http_code' => $http_code, 'result_data', $result_data => $result_data];
+        $debug = ['result_meta' => $result_meta];
+
+        if (empty($result_data)) {
+            $debug['response_body'] = Str::limit($response->getPsr7()->getBody()->__toString(), 300);
+        }
+
+        return $this->errorResult('WHM API Error: ' . $message, $data, $debug);
     }
 
     protected function getClient(): Client
