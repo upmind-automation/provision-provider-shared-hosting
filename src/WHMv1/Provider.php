@@ -89,7 +89,7 @@ class Provider extends SharedHosting implements ProviderInterface
             );
         }
 
-        $availableFunctions = array_get($functionsResult->getData(), 'result_data');
+        $availableFunctions = Arr::get($functionsResult->getData(), 'result_data');
 
         $requiredFunctions = [
             'createacct',
@@ -129,7 +129,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $response = $this->makeApiCall('GET', 'applist');
 
         return $this->functions = $this->processResponse($response, function ($responseData) {
-            return collect(array_get($responseData, 'app'))->sortKeys()->all();
+            return collect(Arr::get($responseData, 'app'))->sortKeys()->all();
         });
     }
 
