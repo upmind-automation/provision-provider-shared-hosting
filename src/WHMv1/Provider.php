@@ -139,7 +139,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $password = $params->password ?: Helper::generatePassword();
         $domain = $params->domain;
         $contactemail = $params->email;
-        $plan = $params->package_name;
+        $plan = $this->determinePackageName($params->package_name);
         $customip = $params->custom_ip;
         $reseller = intval($params->as_reseller ?? false);
 
@@ -175,11 +175,11 @@ class Provider extends SharedHosting implements ProviderInterface
                     // just in case WHM is running any weird post-create scripts, let's see if we can return success
                     return $this->finishCreate($username, $params->reseller_options)
                         ->setMessage('Account creation in progress')
-                            ->setDebug([
-                                'provider_exception' => ProviderResult::formatException(
-                                    $this->getFirstException($createException)
-                                ),
-                            ]);
+                        ->setDebug([
+                            'provider_exception' => ProviderResult::formatException(
+                                $this->getFirstException($createException)
+                            ),
+                        ]);
                 } catch (Throwable $getInfoException) {
                     if ($createException instanceof ProvisionFunctionError) {
                         throw $createException->withData(array_merge($createException->getData(), [
@@ -267,7 +267,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $response = $this->makeApiCall('POST', 'changepackage', [
             'user' => $params->username,
-            'pkg' => $params->package_name
+            'pkg' => $this->determinePackageName($params->package_name),
         ]);
         $this->processResponse($response);
 
@@ -443,6 +443,44 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setSuspendReason($accSummary['suspendreason'] !== 'not suspended' ? $accSummary['suspendreason'] : null)
             ->setIp($accSummary['ip'])
             ->setNameservers($nameservers);
+    }
+
+    /**
+     * Determine the package name
+     */
+    protected function determinePackageName(string $packageName): string
+    {
+        try {
+            $this->getPackageInfo($packageName);
+            return $packageName;
+        } catch (Throwable $e) {
+            $usernamePrefix = sprintf('%s_', $this->configuration->whm_username);
+
+            if (!Str::startsWith($packageName, $usernamePrefix)) {
+                $packageName = $usernamePrefix . $packageName;
+
+                try {
+                    $this->getPackageInfo($packageName);
+                    return $packageName;
+                } catch (Throwable $e2) {
+                    // ignore this exception and re-throw the first
+                }
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Get info about a package.
+     */
+    protected function getPackageInfo(string $packageName): array
+    {
+        $response = $this->makeApiCall('GET', 'getpkginfo', [
+            'pkg' => $packageName,
+        ]);
+
+        return $this->processResponse($response);
     }
 
     /**
