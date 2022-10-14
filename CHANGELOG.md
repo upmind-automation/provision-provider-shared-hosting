@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## v4.3.0 - 2022-10-14
+
+- Update to `upmind/provision-provider-base` v3.0.0
+- Add icon to Category AboutData
+- Add logo_url to Providers' AboutData
+
 ## v4.2.6 - 2022-09-23
 
 - Update WHMv1\Provider to automatically prepend reseller username to package names

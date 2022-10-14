@@ -34,8 +34,9 @@ abstract class Category extends BaseCategory
             ->setName('Shared WebHosting')
             ->setDescription(
                 'Provision and manage accounts on common shared hosting'
-                . 'platforms such as cPanel/WHM and Plesk'
-            );
+                    . ' platforms such as cPanel/WHM and Plesk'
+            )
+            ->setIcon('laptop');
     }
 
     /**

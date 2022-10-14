@@ -60,6 +60,7 @@ class Provider extends SharedHosting implements ProviderInterface
         return AboutData::create([
             'name' => 'Plesk',
             'description' => 'Create and manage Plesk accounts and resellers using the Onyx RPC API',
+            'logo_url' => 'https://api.upmind.io/images/logos/provision/plesk-logo@2x.png',
         ]);
     }
 

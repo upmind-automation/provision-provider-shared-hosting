@@ -58,7 +58,8 @@ class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
     {
         return AboutData::create()
             ->setName('20i Hosting')
-            ->setDescription('Create and manage 20i hosting accounts via the reseller API');
+            ->setDescription('Create and manage 20i hosting accounts via the reseller API')
+            ->setLogoUrl('https://api.upmind.io/images/logos/provision/20i-logo@2x.png');
     }
 
     public function create(CreateParams $params): AccountInfo

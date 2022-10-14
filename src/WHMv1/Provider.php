@@ -70,7 +70,8 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         return AboutData::create()
             ->setName('cPanel')
-            ->setDescription('Create and manage cPanel accounts and resellers using the WHMv1 API');
+            ->setDescription('Create and manage cPanel accounts and resellers using the WHMv1 API')
+            ->setLogoUrl('https://api.upmind.io/images/logos/provision/cpanel-logo@2x.png');
     }
 
     public function testConfiguration(): EmptyResult
