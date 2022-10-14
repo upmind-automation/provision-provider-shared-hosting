@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## v4.2.6 - 2022-09-23
+
+- Update WHMv1\Provider to automatically prepend reseller username to package names
+  when needed
+
 ## v4.2.5 - 2022-09-23
 
 - Fix WHMv1\Provider::processResponse()
