@@ -15,7 +15,6 @@ use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
-use Upmind\ProvisionBase\Provider\Contract\LogsDebugData;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionBase\Result\ProviderResult;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
@@ -37,7 +36,7 @@ use Upmind\ProvisionProviders\SharedHosting\TwentyI\Data\TwentyICredentials;
  *
  * @link https://my.20i.com/reseller/apiDoc
  */
-class Provider extends SharedHosting implements ProviderInterface, LogsDebugData
+class Provider extends SharedHosting implements ProviderInterface
 {
     /**
      * @var Api|null
