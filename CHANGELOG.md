@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v4.3.1 - 2022-10-18
+
+- Update TwentyI Provider to not implement LogsDebugData twice
+
 ## v4.3.0 - 2022-10-14
 
 - Update to `upmind/provision-provider-base` v3.0.0
