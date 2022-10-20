@@ -2,6 +2,16 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.0.0 - 2022-10-20
+
+#### New
+- Implement Enhance provider using OpenAPI sdk
+- Change param and result sets to include optional subscription_id
+
+#### Breaking
+- Require customer_name in param dataset CreateParams
+- Make expires optional in result dataset LoginUrl
+
 ## v4.3.1 - 2022-10-18
 
 - Update TwentyI Provider to not implement LogsDebugData twice

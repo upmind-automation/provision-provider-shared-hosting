@@ -15,6 +15,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|null $owner_username Username of the reseller "owner" of the new account
  * @property-read boolean|null $owns_itself Account should own itself (overrides $owner_username)
  * @property-read string $email Email address of the new account holder
+ * @property-read string $customer_name Name of the customer
  * @property-read string|null $password Password for the new account
  * @property-read string $domain Main domain name of the new account
  * @property-read string $package_name Name/identifier of the package/tier/quota for the new account
@@ -32,6 +33,7 @@ class CreateParams extends DataSet
             'owner_username' => ['string'],
             'owns_itself' => ['bool'],
             'email' => ['required', 'email'],
+            'customer_name' => ['required', 'string'],
             'password' => ['string'],
             'domain' => ['required', 'domain_name'],
             'package_name' => ['required', 'string'],

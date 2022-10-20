@@ -14,7 +14,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  *
  * @property-read string $login_url Pre-signed url which can be used to sign in
  * @property-read string|null $for_ip IP address the url is valid for, if any
- * @property-read string $expires Date/time the link expires, in UTC format `Y-m-d H:i:s`
+ * @property-read string|null $expires Date/time the link expires, in UTC format `Y-m-d H:i:s`
  */
 class LoginUrl extends ResultData
 {
@@ -23,7 +23,7 @@ class LoginUrl extends ResultData
         return new Rules([
             'login_url' => ['required', 'url'],
             'for_ip' => ['nullable', 'ip'],
-            'expires' => ['required', 'date_format:Y-m-d H:i:s'],
+            'expires' => ['nullable', 'date_format:Y-m-d H:i:s'],
         ]);
     }
 
@@ -48,9 +48,9 @@ class LoginUrl extends ResultData
     /**
      * @param Carbon|DateTime $expires Datetime the link expires
      */
-    public function setExpires(DateTime $expires): self
+    public function setExpires(?DateTime $expires): self
     {
-        $this->setValue('expires', $expires->format('Y-m-d H:i:s'));
+        $this->setValue('expires', $expires ? $expires->format('Y-m-d H:i:s') : null);
         return $this;
     }
 }
