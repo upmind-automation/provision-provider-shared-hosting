@@ -81,6 +81,7 @@ The following providers are currently implemented:
   - cPanel/WHM
   - Plesk (Onyx)
   - 20i
+  - Enhance
 
 ## Functions
 
