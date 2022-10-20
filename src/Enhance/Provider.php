@@ -14,12 +14,14 @@ use Upmind\EnhanceSdk\Model\NewCustomer;
 use Upmind\EnhanceSdk\Model\NewMember;
 use Upmind\EnhanceSdk\Model\NewSubscription;
 use Upmind\EnhanceSdk\Model\NewWebsite;
+use Upmind\EnhanceSdk\Model\PhpVersion;
 use Upmind\EnhanceSdk\Model\Plan;
 use Upmind\EnhanceSdk\Model\Role;
 use Upmind\EnhanceSdk\Model\ServerIp;
 use Upmind\EnhanceSdk\Model\Status;
 use Upmind\EnhanceSdk\Model\Subscription;
 use Upmind\EnhanceSdk\Model\UpdateSubscription;
+use Upmind\EnhanceSdk\Model\UpdateWebsite;
 use Upmind\EnhanceSdk\Model\Website;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
@@ -448,9 +450,16 @@ class Provider extends Category implements ProviderInterface
             ->setSubscriptionId($subscriptionId)
             ->setDomain($domain);
 
-        return $this->api()->websites()
+        $websiteId = $this->api()->websites()
             ->createWebsite($customerId, $newWebsite)
             ->getId();
+
+        $updateWebsite = (new UpdateWebsite())
+            ->setPhpVersion(PhpVersion::PHP74);
+
+        $this->api()->websites()->updateWebsite($customerId, $websiteId, $updateWebsite);
+
+        return $websiteId;
     }
 
     protected function findPlan(string $packageName): Plan
