@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.1.1 - 2022-10-20
+
+- Make CreateParams `customer_name` optional
+
 ## v5.1.0 - 2022-10-20
 
 - Require upmind/provision-provider-base ^3.3
