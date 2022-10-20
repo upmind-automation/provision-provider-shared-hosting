@@ -50,11 +50,6 @@ class Api
      */
     protected $client;
 
-    /**
-     * @var object[]
-     */
-    protected $services = [];
-
     public function __construct(Configuration $configuration)
     {
         $this->client = new Client();
