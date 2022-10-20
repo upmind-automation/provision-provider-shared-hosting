@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Upmind\ProvisionProviders\SharedHosting\Enhance;
 
 use GuzzleHttp\Client;
-use RuntimeException;
 use Throwable;
 use Upmind\EnhanceSdk\ApiException;
 use Upmind\EnhanceSdk\Model\DomainIp;
 use Upmind\EnhanceSdk\Model\LoginInfo;
+use Upmind\EnhanceSdk\Model\Member;
 use Upmind\EnhanceSdk\Model\NewCustomer;
 use Upmind\EnhanceSdk\Model\NewMember;
 use Upmind\EnhanceSdk\Model\NewSubscription;
@@ -19,7 +19,6 @@ use Upmind\EnhanceSdk\Model\Plan;
 use Upmind\EnhanceSdk\Model\Role;
 use Upmind\EnhanceSdk\Model\ServerIp;
 use Upmind\EnhanceSdk\Model\Status;
-use Upmind\EnhanceSdk\Model\Subscription;
 use Upmind\EnhanceSdk\Model\UpdateSubscription;
 use Upmind\EnhanceSdk\Model\UpdateWebsite;
 use Upmind\EnhanceSdk\Model\Website;
@@ -71,7 +70,7 @@ class Provider extends Category implements ProviderInterface
             $plan = $this->findPlan($params->package_name);
 
             if ($customerId = $params->customer_id) {
-                $email = $this->findOwnerEmail($customerId, $params->email);
+                $email = $this->findOwnerMember($customerId, $params->email)->getEmail();
             } else {
                 $customerId = $this->createCustomer(
                     $params->customer_name,
@@ -187,13 +186,30 @@ class Provider extends Category implements ProviderInterface
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        return LoginUrl::create()
-            ->setLoginUrl(sprintf('https://%s/websites', $this->configuration->hostname));
+        try {
+            $website = $this->findWebsite($params->customer_id, intval($params->subscription_id));
+
+            return LoginUrl::create()
+                ->setLoginUrl(sprintf('https://%s/websites/%s', $this->configuration->hostname, $website->getId() ?? null));
+        } catch (Throwable $e) {
+            throw $this->handleException($e);
+        }
     }
 
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        throw $this->errorResult('Operation not supported');
+        try {
+            $owner = $this->findOwnerMember($params->customer_id, $params->username);
+
+            $this->api()->logins()->startPasswordRecovery(
+                ['email' => $owner->getEmail()],
+                $params->customer_id
+            );
+
+            return $this->emptyResult('Password reset initiated - please check your email');
+        } catch (Throwable $e) {
+            throw $this->handleException($e);
+        }
     }
 
     public function changePackage(ChangePackageParams $params): AccountInfo
@@ -259,7 +275,7 @@ class Provider extends Category implements ProviderInterface
         return AccountInfo::create()
             ->setMessage('Subscription info obtained')
             ->setCustomerId($customerId)
-            ->setUsername($email ?? $this->findOwnerEmail($customerId))
+            ->setUsername($email ?? $this->findOwnerMember($customerId)->getEmail())
             ->setSubscriptionId($subscriptionId)
             ->setDomain($website ? $website->getDomain()->getDomain() : 'no.websites')
             ->setServerHostname($this->configuration->hostname)
@@ -334,17 +350,17 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
-     * Finds the owner email address of the given customer id, preferring the
-     * given email if it exists.
+     * Finds the owner member of the given customer id, preferring the given
+     * email if it exists.
      */
-    protected function findOwnerEmail(string $customerId, ?string $email = null): string
+    protected function findOwnerMember(string $customerId, ?string $email = null): Member
     {
-        $firstLogin = null;
+        $firstMember = null;
         $offset = 0;
         $limit = 10;
 
         while (true) {
-            $logins = $this->api()->members()->getMembers(
+            $members = $this->api()->members()->getMembers(
                 $customerId,
                 $offset,
                 $limit,
@@ -354,34 +370,30 @@ class Provider extends Category implements ProviderInterface
                 Role::OWNER
             );
 
-            foreach ($logins->getItems() as $login) {
-                if (is_null($email)) {
-                    return $login->getEmail();
+            foreach ($members->getItems() as $member) {
+                if (is_null($email) || $member->getEmail() === $email) {
+                    return $member;
                 }
 
-                if (is_null($firstLogin)) {
-                    $firstLogin = $login;
-                }
-
-                if ($login->getEmail() === $email) {
-                    return $email;
+                if (is_null($firstMember)) {
+                    $firstMember = $member;
                 }
             }
 
-            if ($logins->getTotal() <= ($offset + $limit)) {
+            if ($members->getTotal() <= ($offset + $limit)) {
                 break;
             }
 
             $offset += $limit;
         }
 
-        if (is_null($firstLogin)) {
+        if (is_null($firstMember)) {
             throw $this->errorResult('Customer login not found', [
                 'customer_id' => $customerId,
             ]);
         }
 
-        return $firstLogin->getEmail();
+        return $firstMember;
     }
 
     /**
