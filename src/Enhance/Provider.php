@@ -23,6 +23,7 @@ use Upmind\EnhanceSdk\Model\UpdateSubscription;
 use Upmind\EnhanceSdk\Model\UpdateWebsite;
 use Upmind\EnhanceSdk\Model\Website;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
+use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
@@ -506,20 +507,13 @@ class Provider extends Category implements ProviderInterface
         }
     }
 
+    /**
+     * Returns a random password 15 chars long containing lower & uppercase alpha,
+     * numeric and special characters.
+     */
     protected function generateRandomPassword(): string
     {
-        $lowercaseAlphanum = bin2hex(random_bytes(15));
-        $uppercaseAlphanum = strtoupper(bin2hex(random_bytes(15)));
-        $specialCharacters = str_shuffle('!@#$%^&*()-=_+[]{}";\',.<>/?|`~');
-
-        $parts = [
-            $lowercaseAlphanum,
-            $uppercaseAlphanum,
-            $specialCharacters,
-        ];
-        shuffle($parts);
-
-        return substr(str_shuffle(implode('', $parts)), 0, 20);
+        return Helper::generateStrictPassword(15, true, true, true);
     }
 
     /**
