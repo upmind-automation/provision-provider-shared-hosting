@@ -498,7 +498,7 @@ class Provider extends Category implements ProviderInterface
 
             if ($plans->getTotal() <= ($offset + $limit)) {
                 throw $this->errorResult('Plan not found', [
-                    'plan' => $plan,
+                    'plan' => $packageName,
                 ]);
             }
 
