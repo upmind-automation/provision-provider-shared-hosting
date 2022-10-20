@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.1.0 - 2022-10-20
+
+- Require upmind/provision-provider-base ^3.3
+- Fix Enhance provider generateRandomPassword() so a valid password is always
+  returned
+
 ## v5.0.0 - 2022-10-20
 
 #### New
