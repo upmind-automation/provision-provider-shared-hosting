@@ -74,7 +74,7 @@ class Provider extends Category implements ProviderInterface
                 $email = $this->findOwnerMember($customerId, $params->email)->getEmail();
             } else {
                 $customerId = $this->createCustomer(
-                    $params->customer_name,
+                    $params->customer_name ?? $params->email,
                     $params->email,
                     $params->password ?: $this->generateRandomPassword()
                 );
