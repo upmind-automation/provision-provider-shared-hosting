@@ -407,7 +407,9 @@ class Provider extends Category implements ProviderInterface
         $customer = $this->api()->customers()
             ->createCustomer($this->configuration->org_id, $newCustomer);
 
-        $customerId = $customer->getId();
+        if (!$customerId = $customer->getId()) {
+            throw $this->errorResult('Failed to create new customer', $this->getLastGuzzleRequestDebug() ?? []);
+        }
 
         try {
             $newLogin = (new LoginInfo())
