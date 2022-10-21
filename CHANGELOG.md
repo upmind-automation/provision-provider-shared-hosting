@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.2.0 - 2022-10-21
+
+- Require upmind/provision-provider-base ^3.4
+- Update Enhance Api config to use https instead of http
+- Update Enhance createCustomer() return debug error if customer id is empty
+
 ## v5.1.1 - 2022-10-20
 
 - Make CreateParams `customer_name` optional
