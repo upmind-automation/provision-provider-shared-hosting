@@ -560,7 +560,13 @@ class Provider extends Category implements ProviderInterface
         if ($e instanceof ApiException) {
             $responseData = json_decode($e->getResponseBody(), true);
 
-            $message = $message ?: sprintf('API Request Failed [%s]', $e->getCode());
+            if (!$message) {
+                $message = sprintf('API Request Failed [%s]', $e->getCode());
+
+                if (isset($responseData['message'])) {
+                    $message .= ': ' . $responseData['message'];
+                }
+            }
 
             $data = array_merge([
                 'response_code' => $e->getCode(),
