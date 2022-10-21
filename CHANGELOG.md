@@ -7,6 +7,7 @@ All notable changes to the package will be documented in this file.
 - Require upmind/provision-provider-base ^3.4
 - Update Enhance Api config to use https instead of http
 - Update Enhance createCustomer() return debug error if customer id is empty
+- Update Enhance handleException() append response message to result error message
 
 ## v5.1.1 - 2022-10-20
 
