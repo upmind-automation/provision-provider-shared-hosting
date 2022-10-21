@@ -54,7 +54,7 @@ class Api
     {
         $this->client = new Client();
         $this->api_config = (new ApiConfiguration())
-            ->setHost(sprintf('http://%s/api', $configuration->hostname))
+            ->setHost(sprintf('https://%s/api', $configuration->hostname))
             ->setAccessToken($configuration->access_token);
     }
 
