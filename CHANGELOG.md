@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.2.1 - 2022-11-07
+
+- Fix several Enhance provider type errors
+
 ## v5.2.0 - 2022-10-21
 
 - Require upmind/provision-provider-base ^3.4
