@@ -558,7 +558,8 @@ class Provider extends Category implements ProviderInterface
         }
 
         if ($e instanceof ApiException) {
-            $responseData = json_decode($e->getResponseBody(), true);
+            $responseBody = $e->getResponseBody();
+            $responseData = is_string($responseBody) ? json_decode($responseBody, true) : $responseBody;
 
             if (!$message) {
                 $message = sprintf('API Request Failed [%s]', $e->getCode());
@@ -574,7 +575,7 @@ class Provider extends Category implements ProviderInterface
             ], $data);
 
             if (is_null($responseData)) {
-                $debug['response_body'] = $e->getResponseBody();
+                $debug['response_body'] = $responseBody;
             }
 
             throw $this->errorResult($message, $data, $debug, $e);
