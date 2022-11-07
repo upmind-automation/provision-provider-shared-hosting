@@ -191,7 +191,9 @@ class Provider extends Category implements ProviderInterface
             $website = $this->findWebsite($params->customer_id, intval($params->subscription_id));
 
             return LoginUrl::create()
-                ->setLoginUrl(sprintf('https://%s/websites/%s', $this->configuration->hostname, $website->getId() ?? null));
+                ->setLoginUrl(
+                    sprintf('https://%s/websites/%s', $this->configuration->hostname, $website->getId() ?? null)
+                );
         } catch (Throwable $e) {
             throw $this->handleException($e);
         }
