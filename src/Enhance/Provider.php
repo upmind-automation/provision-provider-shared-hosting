@@ -188,11 +188,17 @@ class Provider extends Category implements ProviderInterface
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         try {
-            $website = $this->findWebsite($params->customer_id, intval($params->subscription_id));
+            if (!$params->customer_id || !$params->subscription_id) {
+                return LoginUrl::create()->setLoginUrl(sprintf('https://%s', $this->configuration->hostname));
+            }
+
+            if ($website = $this->findWebsite($params->customer_id, intval($params->subscription_id))) {
+                $websiteId = $website->getId();
+            }
 
             return LoginUrl::create()
                 ->setLoginUrl(
-                    sprintf('https://%s/websites/%s', $this->configuration->hostname, $website->getId() ?? null)
+                    sprintf('https://%s/websites/%s', $this->configuration->hostname, $websiteId ?? null)
                 );
         } catch (Throwable $e) {
             throw $this->handleException($e);
@@ -202,6 +208,10 @@ class Provider extends Category implements ProviderInterface
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
         try {
+            if (!$params->customer_id) {
+                throw $this->errorResult('Customer ID is required');
+            }
+
             $owner = $this->findOwnerMember($params->customer_id, $params->username);
 
             $this->api()->logins()->startPasswordRecovery(
