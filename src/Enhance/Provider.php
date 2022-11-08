@@ -573,6 +573,13 @@ class Provider extends Category implements ProviderInterface
             $responseBody = $e->getResponseBody();
             $responseData = is_string($responseBody) ? json_decode($responseBody, true) : $responseBody;
 
+            if (!$e->getCode() && !$e->getResponseBody()) {
+                // hmm maybe connection failed
+                if (preg_match('/cURL error (\d+): ([^\(]+)/i', $e->getMessage(), $matches)) {
+                    $message = sprintf('API Connection Failed [%s]: %s', $matches[1], $matches[2]);
+                }
+            }
+
             if (!$message) {
                 $message = sprintf('API Request Failed [%s]', $e->getCode());
 
@@ -584,6 +591,7 @@ class Provider extends Category implements ProviderInterface
             $data = array_merge([
                 'response_code' => $e->getCode(),
                 'response_data' => $responseData,
+                'exception_message' => $e->getMessage(),
             ], $data);
 
             if (is_null($responseData)) {
