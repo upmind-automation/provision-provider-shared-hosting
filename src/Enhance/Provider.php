@@ -550,6 +550,7 @@ class Provider extends Category implements ProviderInterface
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->configuration->access_token,
             ],
+            'verify' => !$this->configuration->ignore_ssl_errors,
         ]));
 
         return $this->api = $api;
