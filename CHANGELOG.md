@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+
+## v5.2.2 - 2022-11-08
+
+- Improve handling of cURL errors (e.g., SSL issues) in Enhance provider
+- Add option to ignore Enhance SSL errors
+
 ## v5.2.1 - 2022-11-07
 
 - Fix several Enhance provider type errors
