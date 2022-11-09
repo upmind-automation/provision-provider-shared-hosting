@@ -2,7 +2,7 @@
 
 All notable changes to the package will be documented in this file.
 
-## v5.2.3 - 2022-11-08
+## v5.2.3 - 2022-11-09
 
 - Update to Enhance SDK v8.0.0
 - Append Enhance CP status + version meta-data to error result data
