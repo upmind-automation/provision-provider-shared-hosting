@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Upmind\ProvisionProviders\SharedHosting\Enhance;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Promise\Utils as PromiseUtils;
 use Throwable;
 use Upmind\EnhanceSdk\ApiException;
 use Upmind\EnhanceSdk\Model\DomainIp;
@@ -46,6 +47,11 @@ class Provider extends Category implements ProviderInterface
      * @var Configuration
      */
     protected $configuration;
+
+    /**
+     * @var mixed[]|null
+     */
+    protected $meta;
 
     /**
      * @var Api
@@ -264,6 +270,46 @@ class Provider extends Category implements ProviderInterface
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
         throw $this->errorResult('Operation not supported');
+    }
+
+    /**
+     * Assert that this configuration's Enhance CP is the given version or greater.
+     *
+     * @throws ProvisionFunctionError
+     */
+    protected function requireEnhanceVersion(string $requireVersion, string $operation = 'this operation'): void
+    {
+        $version = $this->getEnhanceMeta()['version'];
+
+        if (true !== version_compare($version, $requireVersion, '>=')) {
+            throw $this->errorResult(
+                sprintf('Control panel v%s is required for %s', $requireVersion, $operation)
+            );
+        }
+    }
+
+    /**
+     * Get Enhance CP status and version.
+     */
+    protected function getEnhanceMeta(): array
+    {
+        if (isset($this->meta)) {
+            return $this->meta;
+        }
+
+        $requests = [
+            'status' => $this->api()->install()->orchdStatusAsync()->then(function ($status) {
+                return json_decode($status) ?? $status;
+            }),
+            'version' => $this->api()->install()->orchdVersionAsync(),
+        ];
+
+        return PromiseUtils::all($requests)
+            ->then(function ($meta) {
+                $this->meta = $meta;
+                return $meta;
+            })
+            ->wait();
     }
 
     protected function getSubscriptionInfo(
@@ -562,6 +608,16 @@ class Provider extends Category implements ProviderInterface
      */
     protected function handleException(Throwable $e, array $data = [], array $debug = [], ?string $message = null): void
     {
+        if (!isset($data['enhance_meta'])) {
+            try {
+                $data['enhance_meta'] = $this->getEnhanceMeta();
+            } catch (Throwable $metaException) {
+                $data['enhance_meta'] = [
+                    'error' => $metaException->getMessage(),
+                ];
+            }
+        }
+
         if ($e instanceof ProvisionFunctionError) {
             throw $e->withData(
                 array_merge($e->getData(), $data)
