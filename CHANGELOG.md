@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.2.4 - 2022-11-09
+
+- Update Enhance sso_destination configuration field options to be lowercase (fixes
+  an issue with consumers using HtmlField which doesnt support uppercase chars in
+  option values)
+
 ## v5.2.3 - 2022-11-09
 
 - Update to Enhance SDK v8.0.0
