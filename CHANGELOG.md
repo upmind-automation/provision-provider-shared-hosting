@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.2.5 - 2022-11-09
+
+- Fix Enhance getWordpressLoginUrl() return value
+
 ## v5.2.4 - 2022-11-09
 
 - Update Enhance sso_destination configuration field options to be lowercase (fixes
