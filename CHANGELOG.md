@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.2.3 - 2022-11-08
+
+- Update to Enhance SDK v8.0.0
+- Append Enhance CP status + version meta-data to error result data
+- Add Enhance configuration value for getLoginUrl() to return either Enhance or
+  Wordpress SSO urls
 
 ## v5.2.2 - 2022-11-08
 
