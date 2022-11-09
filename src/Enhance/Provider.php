@@ -597,7 +597,14 @@ class Provider extends Category implements ProviderInterface
             $wpUser = $this->api()->wordpress()->getWordpressUsers($customerId, $websiteId, $appId)->getItems()[0];
         }
 
-        return $this->api()->wordpress()->getWordpressUserSsoUrl($customerId, $websiteId, $appId, $wpUser->getId());
+        $loginUrl = $this->api()->wordpress()->getWordpressUserSsoUrl(
+            $customerId,
+            $websiteId,
+            $appId,
+            $wpUser->getId()
+        );
+
+        return json_decode($loginUrl) ?? $loginUrl; // in-case it's returned as a JSON string
     }
 
     protected function getWordpressAppId(string $customerId, string $websiteId): string
