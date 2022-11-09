@@ -23,6 +23,7 @@ use Upmind\EnhanceSdk\Model\Status;
 use Upmind\EnhanceSdk\Model\UpdateSubscription;
 use Upmind\EnhanceSdk\Model\UpdateWebsite;
 use Upmind\EnhanceSdk\Model\Website;
+use Upmind\EnhanceSdk\Model\WebsiteAppKind;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
@@ -202,10 +203,25 @@ class Provider extends Category implements ProviderInterface
                 $websiteId = $website->getId();
             }
 
+            switch ($this->configuration->sso_destination) {
+                case 'Wordpress':
+                    $this->requireEnhanceVersion('8.0.0', 'wordpress login');
+
+                    if (!$websiteId) {
+                        throw $this->errorResult('Website not found', [
+                            'customer_id' => $params->customer_id,
+                            'subscription_id' => $params->subscription_id,
+                        ]);
+                    }
+
+                    $loginUrl = $this->getWordpressLoginUrl($params->customer_id, $websiteId);
+                    break;
+                default:
+                    $loginUrl = sprintf('https://%s/websites/%s', $this->configuration->hostname, $websiteId ?? null);
+            }
+
             return LoginUrl::create()
-                ->setLoginUrl(
-                    sprintf('https://%s/websites/%s', $this->configuration->hostname, $websiteId ?? null)
-                );
+                ->setLoginUrl($loginUrl);
         } catch (Throwable $e) {
             throw $this->handleException($e);
         }
@@ -565,6 +581,39 @@ class Provider extends Category implements ProviderInterface
 
             $offset += $limit;
         }
+    }
+
+    protected function getWordpressLoginUrl(string $customerId, string $websiteId): string
+    {
+        $appId = $this->getWordpressAppId($customerId, $websiteId);
+
+        try {
+            $wpUser = $this->api()->wordpress()->getDefaultWpSsoUser($customerId, $websiteId, $appId);
+        } catch (ApiException $e) {
+            if ($e->getCode() !== 404) {
+                throw $e;
+            }
+
+            $wpUser = $this->api()->wordpress()->getWordpressUsers($customerId, $websiteId, $appId)->getItems()[0];
+        }
+
+        return $this->api()->wordpress()->getWordpressUserSsoUrl($customerId, $websiteId, $appId, $wpUser->getId());
+    }
+
+    protected function getWordpressAppId(string $customerId, string $websiteId): string
+    {
+        $apps = $this->api()->apps()->getWebsiteApps($customerId, $websiteId);
+
+        foreach ($apps->getItems() as $app) {
+            if ($app->getApp() === WebsiteAppKind::WORDPRESS) {
+                return $app->getId();
+            }
+        }
+
+        throw $this->errorResult('Website does not have Wordpress installed', [
+            'customer_id' => $customerId,
+            'website_id' => $websiteId,
+        ]);
     }
 
     /**
