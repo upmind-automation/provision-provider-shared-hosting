@@ -25,7 +25,7 @@ class Configuration extends DataSet
             'hostname' => ['required', 'domain_name'],
             'org_id' => ['required', 'string'],
             'access_token' => ['required', 'string'],
-            'sso_destination' => ['in:Enhance,Wordpress'],
+            'sso_destination' => ['in:enhance,wordpress'],
             'ignore_ssl_errors' => ['boolean'],
             'debug' => ['boolean'],
         ]);

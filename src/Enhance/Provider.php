@@ -204,7 +204,7 @@ class Provider extends Category implements ProviderInterface
             }
 
             switch ($this->configuration->sso_destination) {
-                case 'Wordpress':
+                case 'wordpress':
                     $this->requireEnhanceVersion('8.0.0', 'wordpress login');
 
                     if (!$websiteId) {
