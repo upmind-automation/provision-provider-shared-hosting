@@ -37,57 +37,23 @@ This library makes use of [upmind/provision-provider-base](https://packagist.org
 
 ### Quick-start
 
-See the below example to create a cPanel account:
+The easiest way to see this provision category in action and to develop/test changes is to install it in [upmind/provision-workbench](https://github.com/upmind-automation/provision-workbench#readme).
 
-```php
-<?php
-
-use Illuminate\Support\Facades\App;
-use Upmind\ProvisionBase\ProviderFactory;
-
-$configuration = [
-    'hostname' => 'whm.example.com',
-    'port' => 2087,
-    'whm_username' => 'root',
-    'api_key' => '{secret key}',
-];
-
-$factory = App::make(ProviderFactory::class);
-$provider = $factory->create('shared-hosting', 'cpanel', $configuration);
-
-$createParameters = [
-    'email' => 'harry@upmind.com',
-    'domain' => 'example.com',
-    'package_name' => 'starter_package',
-];
-$function = $provider->makeJob('create', $createParameters);
-
-$createResult = $function->execute();
-
-if ($createResult->isError()) {
-    throw new RuntimeException($createResult->getMessage(), 0, $createResult->getException());
-}
-
-/** @var \Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo */
-$accountInfo = $createResult->getData();
-
-// $accountInfo->username; // username/identifier of the created hosting account
-// ...
-```
+Alternatively you can start using it for your business immediately with [Upmind.com](https://upmind.com/start) - the ultimate web hosting billing and management solution.
 
 ## Supported Providers
 
 The following providers are currently implemented:
-  - cPanel/WHM
-  - Plesk (Onyx)
-  - 20i
-  - Enhance
+  - [cPanel/WHM](https://api.docs.cpanel.net/)
+  - [Plesk (Onyx/Obsidian)](https://docs.plesk.com/en-US/onyx/api-rpc/introduction.79358/)
+  - [20i](https://www.20i.com/reseller-hosting)
+  - [Enhance](https://enhance.com/)
 
 ## Functions
 
 ### create()
 
-Creates a web hosting account / website and returns the `username` which can be used to identify the account in subsequent requests, and other account information.
+Creates a web hosting account / website and returns the `username` (and for some providers, a `customer_id` and/or `subscription_id`) which can be used to identify the account in subsequent requests, and other account information.
 
 ### getInfo()
 
