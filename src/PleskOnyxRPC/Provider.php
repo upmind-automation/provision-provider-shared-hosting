@@ -17,6 +17,7 @@ use PleskX\Api\XmlResponse;
 use Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Errors\ServiceMisconfiguration;
 use Upmind\ProvisionBase\Provider\Helper\Exception\Contract\ProviderError;
 use Throwable;
+use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
@@ -93,17 +94,27 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $client = $this->getClient();
 
-        try {
-            //create customer
-            $customerParams = compact('pname', 'login', 'passwd', 'email');
+        if ($params->customer_id) {
+            $customerId = $params->customer_id;
+        } else {
+            try {
+                //create customer
+                $customerParams = [
+                    'pname' => $pname,
+                    'login' => $login,
+                    'passwd' => $passwd,
+                    'email' => $email,
+                ];
 
-            if ($ownerLogin) {
-                $customerParams['owner-login'] = $ownerLogin;
+                if ($ownerLogin) {
+                    $customerParams['owner-login'] = $ownerLogin;
+                }
+
+                $newCustomer = $client->customer()->create($customerParams);
+                $customerId = $newCustomer->id;
+            } catch (PleskException | PleskClientException | ProviderError $e) {
+                return $this->handleException($e, 'Create customer');
             }
-
-            $customer = $client->customer()->create($customerParams);
-        } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Create customer');
         }
 
         if (!$ip_address) {
@@ -121,12 +132,16 @@ class Provider extends SharedHosting implements ProviderInterface
                 }
             } catch (PleskException | PleskClientException | ProviderError $e) {
                 //cleanup customer
-                $client->customer()->delete('id', $customer->id);
+                if (isset($newCustomer)) {
+                    $client->customer()->delete('id', $newCustomer->id);
+                }
 
                 return $this->handleException($e, 'Get IPs');
             } catch (Throwable $e) {
                 //cleanup customer
-                $client->customer()->delete('id', $customer->id);
+                if (isset($newCustomer)) {
+                    $client->customer()->delete('id', $newCustomer->id);
+                }
                 //let ProviderJob object handle this one
                 throw $e;
             }
@@ -136,7 +151,9 @@ class Provider extends SharedHosting implements ProviderInterface
             $plan = $this->getPlan($params->package_name);
         } catch (PleskException | PleskClientException | ProviderError $e) {
             //cleanup customer
-            $client->customer()->delete('id', $customer->id);
+            if (isset($newCustomer)) {
+                $client->customer()->delete('id', $newCustomer->id);
+            }
 
             return $this->handleException($e, 'Get plan info');
         }
@@ -145,7 +162,7 @@ class Provider extends SharedHosting implements ProviderInterface
             //create webspace
             $webspaceParams = [
                 'name' => $domain,
-                'owner-id' => $customer->id,
+                'owner-id' => $customerId,
                 'ip_address' => $ip_address,
                 'htype' => 'vrt_hst'
 
@@ -157,19 +174,23 @@ class Provider extends SharedHosting implements ProviderInterface
             $webspace = $client->webspace()->create($webspaceParams, $hostingParams, $plan->name);
         } catch (PleskException | PleskClientException | ProviderError $e) {
             //cleanup customer
-            $client->customer()->delete('id', $customer->id);
+            if (isset($newCustomer)) {
+                $client->customer()->delete('id', $newCustomer->id);
+            }
 
             return $this->handleException($e, 'Create webspace');
         } catch (Throwable $e) {
             //cleanup customer
-            $client->customer()->delete('id', $customer->id);
+            if (isset($newCustomer)) {
+                $client->customer()->delete('id', $newCustomer->id);
+            }
             //let ProviderJob object handle this one
             throw $e;
         }
 
-        return $this->getInfo(new AccountUsername(['username' => $login]))
-            ->setMessage('Account created')
-            ->setDebug(@compact('customer', 'webspace'));
+        return $this->getInfo(new AccountUsername(['subscription_id' => $webspace->id, 'username' => $login]))
+            ->setMessage('Subscription created')
+            ->setDebug(['customer' => $newCustomer ?? $customerId, 'webspace' => $webspace]);
     }
 
     protected function createReseller(CreateParams $params): AccountInfo
@@ -295,7 +316,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         return $this->getInfo(new AccountUsername(['username' => $login]))
-            ->setMessage('Account created')
+            ->setMessage('Reseller created')
             ->setDebug(@compact('customer', 'webspace'));
     }
 
@@ -387,33 +408,81 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->getResellerInfo($username);
         }
 
-        $domainRequest = [
-            'get-domain-list' => [
-                'filter' => [
-                    'login' => $username,
-                ],
-            ],
-        ];
-
-        $webspaceRequest = [
-            'get' => [
-                'filter' => [
-                    'owner-login' => $username,
-                ],
-                'dataset' => [
-                    'gen_info' => '',
-                    'stat' => '',
-                    'hosting' => '',
-                    'packages' => '',
-                    'plan-items' => '',
-                    'subscriptions' => '',
-                ],
-            ],
-        ];
-
         $client = $this->getClient();
 
         try {
+            if ($params->subscription_id || $params->domain) {
+                if ($params->subscription_id) {
+                    // find webspace by guuid
+                    $subscriptionId = $params->subscription_id;
+                    $webspaceInfo = $this->getWebspaceInfo($client, $params->subscription_id);
+                    $domainInfo = $this->getDomainInfo($client, $webspaceInfo->data->gen_info->getValue('name'));
+                    $customerId = $webspaceInfo->data->gen_info->getValue('owner-id');
+                } else {
+                    // find webspace by domain
+                    $domainInfo = $this->getDomainInfo($client, $params->domain);
+                    $subscriptionId = $domainInfo->data->gen_info->getValue('webspace-id');
+                    $webspaceInfo = $this->getWebspaceInfo($client, $subscriptionId);
+                    $customerId = $webspaceInfo->data->gen_info->getValue('owner-id');
+                }
+
+                // if ($params->customer_id && $params->customer_id != $customerId) {
+                //     throw $this->errorResult('Subscription does not belong to given customer', [
+                //         'customer_id' => $params->customer_id,
+                //         'subscription_id' => $subscriptionId,
+                //         'subscription_customer_id' => $customerId,
+                //     ]);
+                // }
+
+                $customerInfo = $this->getCustomerInfo($client, $customerId);
+                $username = $customerInfo->data->gen_info->getValue('login');
+                $ipAddress = $webspaceInfo->data->gen_info->getValue('dns_ip_address');
+                $domainNameServers = $this->getDnsRecords($client, $domainInfo->getValue('id'), 'NS');
+
+                if ($subscriptionPlan = $webspaceInfo->data->subscriptions->subscription->plan ?? null) {
+                    $planInfo = $this->getPlanInfo($client, $subscriptionPlan->getValue('plan-guid'));
+                    $planName = $planInfo->getValue('name');
+                }
+
+                return AccountInfo::create([
+                    'customer_id' => $customerId,
+                    'username' => $username,
+                    'subscription_id' => $subscriptionId,
+                    'domain' => $domainInfo->data->gen_info->getValue('name'),
+                    'reseller' => false,
+                    'server_hostname' => $this->configuration->hostname,
+                    'package_name' => $planName ?? 'Unknown',
+                    'suspended' => (string)$webspaceInfo->data->gen_info->status !== '0',
+                    'suspend_reason' => null,
+                    'ip' => $ipAddress,
+                    'nameservers' => $domainNameServers,
+                ]);
+            }
+
+            $domainRequest = [
+                'get-domain-list' => [
+                    'filter' => [
+                        'login' => $username,
+                    ],
+                ],
+            ];
+
+            $webspaceRequest = [
+                'get' => [
+                    'filter' => [
+                        'owner-login' => $username,
+                    ],
+                    'dataset' => [
+                        'gen_info' => '',
+                        'stat' => '',
+                        'hosting' => '',
+                        'packages' => '',
+                        'plan-items' => '',
+                        'subscriptions' => '',
+                    ],
+                ],
+            ];
+
             $domainInfo = $client->customer()->request($domainRequest, Client::RESPONSE_FULL);
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
             $webspaceInfo = $client->webspace()->request($webspaceRequest);
@@ -437,8 +506,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return AccountInfo::create(
                 [
-                    // dont keep customer_id for now - bit of a rework required in order to allow multiple subscriptions
-                    // 'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
+                    'customer_id' => (string)$webspaceInfo->data->gen_info->{'owner-id'},
                     'username' => $username,
                     'domain' => (string)$webspaceInfo->data->gen_info->name,
                     'reseller' => false,
@@ -451,7 +519,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 ]
             );
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get customer stats');
+            return $this->handleException($e, 'Get subscription info');
         }
     }
 
@@ -509,7 +577,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 ]
             );
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get reseller stats');
+            return $this->handleException($e, 'Get reseller info');
         }
     }
 
@@ -539,10 +607,20 @@ class Provider extends SharedHosting implements ProviderInterface
             ]
         ];
 
+        if ($params->subscription_id) {
+            $webspaceRequest['switch-subscription']['filter'] = [
+                'id' => $params->subscription_id
+            ];
+        } elseif ($params->domain) {
+            $webspaceRequest['switch-subscription']['filter'] = [
+                'name' => $params->domain
+            ];
+        }
+
         try {
             $response = $client->webspace()->request($webspaceRequest);
 
-            return $this->getInfo(AccountUsername::create(['username' => $params->username]))
+            return $this->getInfo(AccountUsername::create($params))
                 ->setMessage('Package changed');
         } catch (PleskException | PleskClientException | ProviderError $e) {
             return $this->handleException($e, "Change customer package");
@@ -585,6 +663,17 @@ class Provider extends SharedHosting implements ProviderInterface
         $client = $this->getClient();
 
         try {
+            // if ($params->domain) {
+            //     $webspaceInfo = $this->getDomainWebspaceInfo($client, $params->domain);
+
+            //     if ((string)$webspaceInfo->data->gen_info->status == '0') {
+            //         throw $this->errorResult('Webspace suspended', [
+            //             'status' => (string)$webspaceInfo->data->gen_info->status,
+            //             'webspace_guid' => $webspaceInfo->data->gen_info->getValue('guid')
+            //         ]);
+            //     }
+            // }
+
             $sessionId = $client->server()->createSession($username, $user_ip);
             if ('windows' === $this->configuration->operating_system) {
                 $sessionKey = 'PLESKSESSID';
@@ -631,13 +720,38 @@ class Provider extends SharedHosting implements ProviderInterface
         $client = $this->getClient();
 
         try {
-            $client->customer()->request($requestParams);
+            if ($params->subscription_id || $params->domain) {
+                $requestParams = [
+                    'set' => [
+                        'filter' => [
+                            'id' => $params->subscription_id,
+                        ],
+                        'values' => [
+                            'gen_setup' => [
+                                // disabled by administrator - https://support.plesk.com/hc/en-us/articles/213902805
+                                'status' => 16
+                            ]
+                        ]
+                    ]
+                ];
 
-            return $this->getInfo(AccountUsername::create(['username' => $params->username]))
-                ->setMessage('Account suspended')
-                ->setSuspendReason($params->reason);
+                if (!$params->subscription_id) {
+                    $requestParams['set']['filter'] = [
+                        'name' => $params->domain,
+                    ];
+                }
+
+                $client->webspace()->request($requestParams);
+            } else {
+                $client->customer()->request($requestParams);
+            }
+
+            return $this->getInfo(AccountUsername::create($params))
+                ->setMessage('Subscription suspended')
+                ->setSuspendReason($params->reason)
+                ->setDebug($params->toArray());
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Suspend account');
+            return $this->handleException($e, 'Subscription suspension');
         }
     }
 
@@ -665,7 +779,7 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->getInfo(AccountUsername::create(['username' => $username]))
             ->setMessage('Reseller suspended');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Suspend reseller');
+            return $this->handleException($e, 'Reseller suspension');
         }
     }
 
@@ -693,12 +807,37 @@ class Provider extends SharedHosting implements ProviderInterface
         $client = $this->getClient();
 
         try {
-            $client->customer()->request($requestParams);
+            if ($params->subscription_id || $params->domain) {
+                $requestParams = [
+                    'set' => [
+                        'filter' => [
+                            'id' => $params->subscription_id,
+                        ],
+                        'values' => [
+                            'gen_setup' => [
+                                //active - https://support.plesk.com/hc/en-us/articles/213902805
+                                'status' => 0
+                            ]
+                        ]
+                    ]
+                ];
 
-            return $this->getInfo(AccountUsername::create(['username' => $params->username]))
-            ->setMessage('Account unsuspended');
+                if (!$params->subscription_id) {
+                    $requestParams['set']['filter'] = [
+                        'name' => $params->domain,
+                    ];
+                }
+
+                $client->webspace()->request($requestParams);
+            } else {
+                $client->customer()->request($requestParams);
+            }
+
+            return $this->getInfo(AccountUsername::create($params))
+                ->setMessage('Subscription unsuspended')
+                ->setDebug($params->toArray());
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Unsuspend account');
+            return $this->handleException($e, 'Subscription unsuspension');
         }
     }
 
@@ -725,7 +864,7 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->getInfo(AccountUsername::create(['username' => $username]))
             ->setMessage('Reseller unsuspended');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Unsuspend reseller');
+            return $this->handleException($e, 'Reseller unsuspension');
         }
     }
 
@@ -799,11 +938,17 @@ class Provider extends SharedHosting implements ProviderInterface
         $client = $this->getClient();
 
         try {
-            $client->customer()->delete('login', $username);
+            if ($params->subscription_id) {
+                $client->webspace()->delete('id', $params->subscription_id);
+            } elseif ($params->domain) {
+                $client->webspace()->delete('name', $params->domain);
+            } else {
+                $client->customer()->delete('login', $username);
+            }
 
-            return $this->emptyResult('Account deleted');
+            return $this->emptyResult('Subscription deleted');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Delete account');
+            return $this->handleException($e, 'Delete Subscription');
         }
     }
 
@@ -908,12 +1053,22 @@ class Provider extends SharedHosting implements ProviderInterface
         return "{$protocol}://{$hostname}:{$port}/{$path}";
     }
 
+    /**
+     * @throws ProvisionFunctionError
+     *
+     * @return no-return
+     */
     protected function handleException(
         Throwable $e,
         string $failedOperation = 'XML API request',
         array $data = [],
         array $debugData = []
     ): void {
+        if ($e instanceof ProvisionFunctionError) {
+            $data = array_merge($e->getData(), $data);
+            $debugData = array_merge($e->getDebug(), $debugData);
+        }
+
         $this->errorResult($this->getErrorMessage($e, $failedOperation), $data, $debugData, $e);
     }
 
@@ -964,6 +1119,40 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
+     * @param Client $client
+     * @param int|string $domainId
+     * @param string $type E.g., NS
+     *
+     * @return string[]
+     */
+    private function getDnsRecords(Client $client, $domainId, string $type): array
+    {
+        try {
+            $dnsInfo = $client->dns()->request([
+                'get_rec' => [
+                    'filter' => [
+                        'site-id' => $domainId,
+                    ],
+                    'include-subdomains' => ''
+                ],
+            ], Client::RESPONSE_FULL);
+
+            $records = [];
+
+            $dnsInfo = json_decode(json_encode($dnsInfo), true);
+            foreach ($dnsInfo['dns']['get_rec']['result'] as $dns) {
+                if ($dns['status'] == 'ok' && $dns['data']['type'] == $type) {
+                    $records[] = rtrim($dns['data']['value'], '.');
+                }
+            }
+
+            return array_values(array_unique($records));
+        } catch (PleskException | PleskClientException | ProviderError $e) {
+            return $this->handleException($e, 'Get dns records', ['domain_id' => $domainId, 'type' => $type]);
+        }
+    }
+
+    /**
      * @param array $domains
      * @param Client $client
      * @param array $domainNameServers
@@ -975,7 +1164,6 @@ class Provider extends SharedHosting implements ProviderInterface
         \PleskX\Api\Client $client,
         array $domainNameServers = []
     ): array {
-        $uniqueArray = [];
         foreach ($domains as $domain) {
             if (!isset($domain['id'])) {
                 $domainNameServers = $this->extractNameServers($domainName, $domain, $client, $domainNameServers);
@@ -990,33 +1178,98 @@ class Provider extends SharedHosting implements ProviderInterface
                 continue;
             }
 
-            $dnsRequest = [
-                'get_rec' => [
-                    'filter' => [
-                        'site-id' => $domain['id'],
-                    ],
-                    'include-subdomains' => ''
-                ],
-            ];
-
-            $dnsResult = $client->dns()->request($dnsRequest, Client::RESPONSE_FULL);
-
-            $dnsResult = json_decode(json_encode($dnsResult), true);
-            foreach ($dnsResult['dns']['get_rec']['result'] as $dns) {
-                if ($dns['status'] == 'ok') {
-                    if ($dns['data']['type'] == 'NS') {
-                        $serverName = rtrim($dns['data']['value'], '.');
-
-                        if (isset($uniqueArray[$serverName])) {
-                            continue;
-                        }
-                        $uniqueArray[$serverName] = 1;
-                        $domainNameServers[] = $serverName;
-                    }
-                }
-            }
+            $domainNameServers = array_merge(
+                $domainNameServers ?? [],
+                $this->getDnsRecords($client, $domain['id'], 'NS')
+            );
         }
 
-        return $domainNameServers;
+        return array_values(array_unique($domainNameServers));
+    }
+
+    private function getDomainInfo(Client $client, string $domain): XmlResponse
+    {
+        try {
+            return $client->site()->request([
+                'get' => [
+                    'filter' => [
+                        'name' => $domain,
+                    ],
+                    'dataset' => [
+                        'gen_info' => '',
+                        'hosting' => '',
+                        'stat' => '',
+                        'prefs' => '',
+                        'disk_usage' => '',
+                    ],
+                ],
+            ]);
+        } catch (PleskException | PleskClientException | ProviderError $e) {
+            return $this->handleException($e, 'Get domain info', ['domain' => $domain]);
+        }
+    }
+
+    private function getDomainWebspaceInfo(Client $client, string $domain): XmlResponse
+    {
+        $domainInfo = $this->getDomainInfo($client, $domain);
+
+        return $this->getWebspaceInfo($client, $domainInfo->data->gen_info->getValue('webspace-id'));
+    }
+
+    private function getWebspaceInfo(Client $client, $webspaceId, string $type = 'id'): XmlResponse
+    {
+        try {
+            return $client->webspace()->request([
+                'get' => [
+                    'filter' => [
+                        $type => $webspaceId,
+                    ],
+                    'dataset' => [
+                        'gen_info' => '',
+                        'stat' => '',
+                        'hosting' => '',
+                        'packages' => '',
+                        'plan-items' => '',
+                        'subscriptions' => '',
+                    ],
+                ],
+            ]);
+        } catch (PleskException | PleskClientException | ProviderError $e) {
+            return $this->handleException($e, 'Get customer info', [$type => $webspaceId]);
+        }
+    }
+
+    private function getCustomerInfo(Client $client, $ownerId): XmlResponse
+    {
+        try {
+            return $client->customer()->request([
+                'get' => [
+                    'filter' => [
+                        'id' => $ownerId,
+                    ],
+                    'dataset' => [
+                        'gen_info' => '',
+                        'stat' => '',
+                    ],
+                ],
+            ]);
+        } catch (PleskException | PleskClientException | ProviderError $e) {
+            return $this->handleException($e, 'Get customer info', ['customer_id' => $ownerId]);
+        }
+    }
+
+    private function getPlanInfo(Client $client, $planGuid): XmlResponse
+    {
+        try {
+            return $client->servicePlan()->request([
+                'get' => [
+                    'filter' => [
+                        'guid' => $planGuid,
+                    ],
+                ],
+            ]);
+        } catch (PleskException | PleskClientException | ProviderError $e) {
+            return $this->handleException($e, 'Get plan info', ['plan_guid' => $planGuid]);
+        }
     }
 }
