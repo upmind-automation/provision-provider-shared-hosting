@@ -17,6 +17,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read bool|null $as_reseller Whether the account should have reseller privileges
  * @property-read boolean|null $owns_itself Account should own itself
  * @property-read ResellerOptionParams|null $reseller_options Additional options for resellers
+ * @property-read string|null $domain Domain name for this account/subscription
  */
 class ChangePackageParams extends DataSet
 {
@@ -30,6 +31,7 @@ class ChangePackageParams extends DataSet
             'as_reseller' => ['boolean'],
             'owns_itself' => ['boolean'],
             'reseller_options' => [ResellerOptionParams::class],
+            'domain' => ['nullable', 'domain_name'],
         ]);
     }
 }

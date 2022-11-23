@@ -13,6 +13,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|integer|null $customer_id ID of the customer on the hosting platform
  * @property-read string|integer|null $subscription_id ID of the subscription on the hosting platform, if any
  * @property-read string $username Username of the account
+ * @property-read string|null $domain Domain name for this account/subscription
  * @property-read string|null $reason Reason for the suspension
  */
 class SuspendParams extends DataSet
@@ -23,6 +24,7 @@ class SuspendParams extends DataSet
             'customer_id' => ['nullable'],
             'subscription_id' => ['nullable'],
             'username' => ['required', 'string'],
+            'domain' => ['nullable', 'domain_name'],
             'reason' => ['string'],
         ]);
     }
