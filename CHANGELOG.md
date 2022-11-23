@@ -2,6 +2,15 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.3.0 2022-11-23
+
+- Add optional domain parameter for getInfo(), changePackage(), suspend()
+  unsuspend() & terminate() functions
+- Update Plesk provider to make use of customer_id and subscription_id with fall-
+  back to domain for cases where username is re-used across subscriptions, and
+  subscription_id is not known (non-reseller)
+- Improve Plesk error handling / messages
+
 ## v5.2.5 - 2022-11-09
 
 - Fix Enhance getWordpressLoginUrl() return value
