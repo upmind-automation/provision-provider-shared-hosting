@@ -596,8 +596,8 @@ class Provider extends Category implements ProviderInterface
 
     protected function getEnhanceLoginUrl(string $customerId, ?string $websiteId = null): string
     {
-        if (!$this->isEnhanceVersion('8.1.0')) {
-            // just redirect them to the panel
+        if (!$this->isEnhanceVersion('8.2.0')) {
+            // feature not present / not working prior to v8.2.0 - just redirect them to the panel
             return sprintf('https://%s/websites/%s', $this->configuration->hostname, $websiteId ?? null);
         }
 
