@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.4.1 - 2022-12-05
+
+- Fix Enhance getLoginUrl() for configurations with null sso_destination
+
 ## v5.4.0 - 2022-12-05
 
 - Update to Enhance SDK v8.1.0
