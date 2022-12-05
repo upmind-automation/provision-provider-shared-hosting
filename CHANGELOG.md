@@ -5,7 +5,7 @@ All notable changes to the package will be documented in this file.
 ## v5.4.0 - TBC
 
 - Update to Enhance SDK v8.1.0
-- Implement Enhance CP SSO
+- Implement Enhance CP SSO for panels running v8.2+
 
 ## v5.3.0 - 2022-11-23
 
