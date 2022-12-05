@@ -199,26 +199,7 @@ class Provider extends Category implements ProviderInterface
                 return LoginUrl::create()->setLoginUrl(sprintf('https://%s', $this->configuration->hostname));
             }
 
-            if ($website = $this->findWebsite($params->customer_id, intval($params->subscription_id))) {
-                $websiteId = $website->getId();
-            }
-
-            switch ($this->configuration->sso_destination) {
-                case 'wordpress':
-                    $this->requireEnhanceVersion('8.0.0', 'wordpress login');
-
-                    if (!$websiteId) {
-                        throw $this->errorResult('Website not found', [
-                            'customer_id' => $params->customer_id,
-                            'subscription_id' => $params->subscription_id,
-                        ]);
-                    }
-
-                    $loginUrl = $this->getWordpressLoginUrl($params->customer_id, $websiteId);
-                    break;
-                default:
-                    $loginUrl = sprintf('https://%s/websites/%s', $this->configuration->hostname, $websiteId ?? null);
-            }
+            $loginUrl = $this->getSsoUrl($params->customer_id, intval($params->subscription_id));
 
             return LoginUrl::create()
                 ->setLoginUrl($loginUrl);
@@ -289,15 +270,23 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
+     * Determine whether this configuration's Enhance CP is the given version or greater.
+     */
+    protected function isEnhanceVersion(string $requireVersion): bool
+    {
+        $version = $this->getEnhanceMeta()['version'];
+
+        return true === version_compare($version, $requireVersion, '>=');
+    }
+
+    /**
      * Assert that this configuration's Enhance CP is the given version or greater.
      *
      * @throws ProvisionFunctionError
      */
     protected function requireEnhanceVersion(string $requireVersion, string $operation = 'this operation'): void
     {
-        $version = $this->getEnhanceMeta()['version'];
-
-        if (true !== version_compare($version, $requireVersion, '>=')) {
+        if (!$this->isEnhanceVersion($requireVersion)) {
             throw $this->errorResult(
                 sprintf('Control panel v%s is required for %s', $requireVersion, $operation)
             );
@@ -581,6 +570,40 @@ class Provider extends Category implements ProviderInterface
 
             $offset += $limit;
         }
+    }
+
+    protected function getSsoUrl(string $customerId, int $subscriptionId): string
+    {
+        if ($website = $this->findWebsite($customerId, $subscriptionId)) {
+            $websiteId = $website->getId();
+        }
+
+        if (strtolower($this->configuration->sso_destination) === 'wordpress') {
+            $this->requireEnhanceVersion('8.0.0', 'wordpress login');
+
+            if (!$websiteId) {
+                throw $this->errorResult('Website not found', [
+                    'customer_id' => $customerId,
+                    'subscription_id' => $subscriptionId,
+                ]);
+            }
+
+            return $this->getWordpressLoginUrl($customerId, $websiteId);
+        }
+
+        return $this->getEnhanceLoginUrl($customerId, $websiteId);
+    }
+
+    protected function getEnhanceLoginUrl(string $customerId, ?string $websiteId = null): string
+    {
+        if (!$this->isEnhanceVersion('8.1.0')) {
+            // just redirect them to the panel
+            return sprintf('https://%s/websites/%s', $this->configuration->hostname, $websiteId ?? null);
+        }
+
+        $url = $this->api()->members()->getOrgMemberLogin($customerId, $this->findOwnerMember($customerId)->getId());
+
+        return json_decode($url) ?? $url;
     }
 
     protected function getWordpressLoginUrl(string $customerId, string $websiteId): string
