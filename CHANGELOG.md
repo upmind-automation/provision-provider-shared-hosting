@@ -2,7 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
-## v5.3.0 2022-11-23
+## v5.4.0 - TBC
+
+- Update to Enhance SDK v8.1.0
+- Implement Enhance CP SSO
+
+## v5.3.0 - 2022-11-23
 
 - Add optional domain parameter for getInfo(), changePackage(), suspend()
   unsuspend() & terminate() functions
