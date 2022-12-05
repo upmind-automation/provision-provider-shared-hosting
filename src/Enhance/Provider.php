@@ -578,7 +578,7 @@ class Provider extends Category implements ProviderInterface
             $websiteId = $website->getId();
         }
 
-        if (strtolower($this->configuration->sso_destination) === 'wordpress') {
+        if (strtolower((string)$this->configuration->sso_destination) === 'wordpress') {
             $this->requireEnhanceVersion('8.0.0', 'wordpress login');
 
             if (!$websiteId) {
