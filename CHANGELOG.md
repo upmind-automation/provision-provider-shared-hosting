@@ -2,6 +2,13 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.4.2 - 2022-12-14
+
+- Update Enhance provider with QoL improvements for manually importing accounts
+  - Make customer_id optional, falling back to finding customer by username (owner
+    email address)
+  - Update getInfo() to find subscription by domain if subscription id is not passed
+
 ## v5.4.1 - 2022-12-05
 
 - Fix Enhance getLoginUrl() for configurations with null sso_destination
