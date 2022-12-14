@@ -101,23 +101,25 @@ class Provider extends Category implements ProviderInterface
     public function suspend(SuspendParams $params): AccountInfo
     {
         try {
-            if (!$params->customer_id || !$params->subscription_id) {
-                throw $this->errorResult('Customer ID and Subscription ID are required');
+            if (!$params->subscription_id) {
+                throw $this->errorResult('Subscription ID is required');
             }
+
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
 
             $updateSubscription = (new UpdateSubscription())
                 ->setIsSuspended(true);
 
             $this->api()->subscriptions()->updateSubscription(
-                $params->customer_id,
+                $customerId,
                 $params->subscription_id,
                 $updateSubscription
             );
 
             $info = $this->getSubscriptionInfo(
-                $params->customer_id,
+                $customerId,
                 intval($params->subscription_id),
-                null,
+                $params->domain,
                 $params->username
             );
 
@@ -131,23 +133,25 @@ class Provider extends Category implements ProviderInterface
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         try {
-            if (!$params->customer_id || !$params->subscription_id) {
-                throw $this->errorResult('Customer ID and Subscription ID are required');
+            if (!$params->subscription_id) {
+                throw $this->errorResult('Subscription ID is required');
             }
+
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
 
             $updateSubscription = (new UpdateSubscription())
                 ->setIsSuspended(false);
 
             $this->api()->subscriptions()->updateSubscription(
-                $params->customer_id,
+                $customerId,
                 $params->subscription_id,
                 $updateSubscription
             );
 
             $info = $this->getSubscriptionInfo(
-                $params->customer_id,
+                $customerId,
                 intval($params->subscription_id),
-                null,
+                $params->domain,
                 $params->username
             );
 
@@ -161,12 +165,14 @@ class Provider extends Category implements ProviderInterface
     public function terminate(AccountUsername $params): EmptyResult
     {
         try {
-            if (!$params->customer_id || !$params->subscription_id) {
-                throw $this->errorResult('Customer ID and Subscription ID are required');
+            if (!$params->subscription_id) {
+                throw $this->errorResult('Subscription ID is required');
             }
 
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
+
             $this->api()->subscriptions()
-                ->deleteSubscription($params->customer_id, $params->subscription_id, 'false');
+                ->deleteSubscription($customerId, $params->subscription_id, 'false');
 
             return $this->emptyResult('Subscription deleted');
         } catch (Throwable $e) {
@@ -177,14 +183,13 @@ class Provider extends Category implements ProviderInterface
     public function getInfo(AccountUsername $params): AccountInfo
     {
         try {
-            if (!$params->customer_id || !$params->subscription_id) {
-                throw $this->errorResult('Customer ID and Subscription ID are required');
-            }
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
+            $subscriptionId = intval($params->subscription_id) ?: null;
 
             return $this->getSubscriptionInfo(
-                $params->customer_id,
-                intval($params->subscription_id),
-                null,
+                $customerId,
+                $subscriptionId,
+                $params->domain,
                 $params->username
             );
         } catch (Throwable $e) {
@@ -231,9 +236,11 @@ class Provider extends Category implements ProviderInterface
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
         try {
-            if (!$params->customer_id || !$params->subscription_id) {
-                throw $this->errorResult('Customer ID and Subscription ID are required');
+            if (!$params->subscription_id) {
+                throw $this->errorResult('Subscription ID is required');
             }
+
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
 
             $plan = $this->findPlan($params->package_name);
 
@@ -241,15 +248,15 @@ class Provider extends Category implements ProviderInterface
                 ->setPlanId($plan->getId());
 
             $this->api()->subscriptions()->updateSubscription(
-                $params->customer_id,
+                $customerId,
                 $params->subscription_id,
                 $updateSubscription
             );
 
             $info = $this->getSubscriptionInfo(
-                $params->customer_id,
+                $customerId,
                 intval($params->subscription_id),
-                null,
+                $params->domain,
                 $params->username
             );
 
@@ -317,14 +324,35 @@ class Provider extends Category implements ProviderInterface
             ->wait();
     }
 
+    protected function findCustomerIdByEmail(string $email): string
+    {
+        $offset = 0;
+        $limit = 20;
+
+        do {
+            $customers = $this->api()->customers()->getOrgCustomers($this->configuration->org_id, $offset, $limit);
+            $offset += $limit;
+
+            foreach ($customers->getItems() as $customer) {
+                if ($email === $customer->getOwnerEmail()) {
+                    return $customer->getId();
+                }
+            }
+        } while ($offset + $limit < $customers->getTotal());
+
+        throw $this->errorResult('Customer not found', ['email' => $email]);
+    }
+
     protected function getSubscriptionInfo(
         string $customerId,
-        int $subscriptionId,
-        ?string $domain = null,
+        ?int $subscriptionId,
+        ?string $domain,
         ?string $email = null
     ): AccountInfo {
+        $website = $this->findWebsite($customerId, $subscriptionId, $domain);
+
         $subscription = $this->api()->subscriptions()
-            ->getSubscription($customerId, $subscriptionId);
+            ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
 
         if ($subscription->getStatus() === Status::DELETED) {
             throw $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
@@ -334,13 +362,11 @@ class Provider extends Category implements ProviderInterface
             return $ns->getDomain();
         }, $this->api()->branding()->getBranding($this->configuration->org_id)->getNameServers());
 
-        $website = $this->findWebsite($customerId, $subscriptionId, $domain);
-
         return AccountInfo::create()
             ->setMessage('Subscription info obtained')
             ->setCustomerId($customerId)
             ->setUsername($email ?? $this->findOwnerMember($customerId)->getEmail())
-            ->setSubscriptionId($subscriptionId)
+            ->setSubscriptionId($subscription->getId())
             ->setDomain($website ? $website->getDomain()->getDomain() : 'no.websites')
             ->setServerHostname($this->configuration->hostname)
             ->setPackageName($subscription->getPlanName())
@@ -353,8 +379,12 @@ class Provider extends Category implements ProviderInterface
             ]);
     }
 
-    protected function findWebsite(string $customerId, int $subscriptionId, ?string $domain = null): ?Website
+    protected function findWebsite(string $customerId, ?int $subscriptionId = null, ?string $domain = null): ?Website
     {
+        if (!$subscriptionId && !$domain) {
+            throw $this->errorResult('Website domain name is required without subscription id');
+        }
+
         $websites = $this->api()->websites()->getWebsites(
             $customerId,
             null,
