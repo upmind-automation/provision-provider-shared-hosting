@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.4.3 - TBC
+
+- Fix Enhance getLoginUrl() where websiteId is not known
+
 ## v5.4.2 - 2022-12-14
 
 - Update Enhance provider with QoL improvements for manually importing accounts
