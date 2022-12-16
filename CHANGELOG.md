@@ -2,9 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
-## v5.4.3 - TBC
+## v5.4.3 - 2022-12-16
 
 - Fix Enhance getLoginUrl() where websiteId is not known
+- Update Enhance findWebsite() to load whole website object including IPs
 
 ## v5.4.2 - 2022-12-14
 
