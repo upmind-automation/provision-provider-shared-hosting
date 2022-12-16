@@ -6,6 +6,7 @@ namespace Upmind\ProvisionProviders\SharedHosting\Enhance;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise\Utils as PromiseUtils;
+use Illuminate\Support\Arr;
 use Throwable;
 use Upmind\EnhanceSdk\ApiException;
 use Upmind\EnhanceSdk\Model\DomainIp;
@@ -405,7 +406,13 @@ class Provider extends Category implements ProviderInterface
             ]);
         }
 
-        return $websites->getItems()[0] ?? null;
+        /** @var Website $website */
+        if (!$website = Arr::first($websites->getItems())) {
+            return null;
+        }
+
+        // get website again to receive full object including IPs
+        return $this->api()->websites()->getWebsite($customerId, $website->getId());
     }
 
     /**
