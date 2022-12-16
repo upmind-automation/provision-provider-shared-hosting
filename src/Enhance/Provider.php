@@ -621,7 +621,7 @@ class Provider extends Category implements ProviderInterface
             return $this->getWordpressLoginUrl($customerId, $websiteId);
         }
 
-        return $this->getEnhanceLoginUrl($customerId, $websiteId);
+        return $this->getEnhanceLoginUrl($customerId, $websiteId ?? null);
     }
 
     protected function getEnhanceLoginUrl(string $customerId, ?string $websiteId = null): string
