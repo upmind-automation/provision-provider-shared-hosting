@@ -395,7 +395,13 @@ class Provider extends Category implements ProviderInterface
             $domain,
             null,
             null,
-            $subscriptionId
+            $subscriptionId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            'false'
         );
 
         if (isset($domain) && $websites->getTotal() !== 1) {
