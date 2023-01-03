@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.4.4 - 2023-01-03
+
+- Fix Enhance provider findWebsite() to exclude deleted websites
+
 ## v5.4.3 - 2022-12-16
 
 - Fix Enhance getLoginUrl() where websiteId is not known
