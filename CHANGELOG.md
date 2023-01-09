@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.5.0 2023-01-09
+
+- Add optional domain param to GetLoginUrlParams
+
 ## v5.4.4 - 2023-01-03
 
 - Fix Enhance provider findWebsite() to exclude deleted websites
