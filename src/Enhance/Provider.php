@@ -201,11 +201,10 @@ class Provider extends Category implements ProviderInterface
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         try {
-            if (!$params->customer_id || !$params->subscription_id) {
-                return LoginUrl::create()->setLoginUrl(sprintf('https://%s', $this->configuration->hostname));
-            }
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
+            $subscriptionId = intval($params->subscription_id) ?: null;
 
-            $loginUrl = $this->getSsoUrl($params->customer_id, intval($params->subscription_id));
+            $loginUrl = $this->getSsoUrl($customerId, $subscriptionId, $params->domain);
 
             return LoginUrl::create()
                 ->setLoginUrl($loginUrl);
@@ -615,9 +614,9 @@ class Provider extends Category implements ProviderInterface
         }
     }
 
-    protected function getSsoUrl(string $customerId, int $subscriptionId): string
+    protected function getSsoUrl(string $customerId, ?int $subscriptionId = null, ?string $domain = null): string
     {
-        if ($website = $this->findWebsite($customerId, $subscriptionId)) {
+        if ($website = $this->findWebsite($customerId, $subscriptionId, $domain ?: null)) {
             $websiteId = $website->getId();
         }
 
