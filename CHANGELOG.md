@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.5.1 - 2023-01-10
+
+- Fix Enhance findWebsite() domain search logic where subscription contained
+  subdomains of the searched root domain
+
 ## v5.5.0 - 2023-01-09
 
 - Add optional domain param to GetLoginUrlParams
