@@ -80,6 +80,10 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function create(CreateParams $params): AccountInfo
     {
+        if (!$params->domain) {
+            throw $this->errorResult('Domain name is required');
+        }
+
         if ($params->as_reseller) {
             return $this->createReseller($params);
         }

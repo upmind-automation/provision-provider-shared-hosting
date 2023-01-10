@@ -90,7 +90,10 @@ class Provider extends Category implements ProviderInterface
             }
 
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
-            $this->createWebsite($customerId, $subscriptionId, $params->domain);
+
+            if ($params->domain) {
+                $this->createWebsite($customerId, $subscriptionId, $params->domain);
+            }
 
             return $this->getSubscriptionInfo($customerId, $subscriptionId, $params->domain, $email)
                 ->setMessage('Website Created');
@@ -367,7 +370,7 @@ class Provider extends Category implements ProviderInterface
             ->setCustomerId($customerId)
             ->setUsername($email ?? $this->findOwnerMember($customerId)->getEmail())
             ->setSubscriptionId($subscription->getId())
-            ->setDomain($website ? $website->getDomain()->getDomain() : 'no.websites')
+            ->setDomain($website ? $website->getDomain()->getDomain() : null)
             ->setServerHostname($this->configuration->hostname)
             ->setPackageName($subscription->getPlanName())
             ->setSuspended(boolval($subscription->getSuspendedBy()))

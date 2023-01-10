@@ -17,7 +17,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string $email Email address of the new account holder
  * @property-read string|null $customer_name Name of the customer
  * @property-read string|null $password Password for the new account
- * @property-read string $domain Main domain name of the new account
+ * @property-read string|null $domain Main domain name of the new account
  * @property-read string $package_name Name/identifier of the package/tier/quota for the new account
  * @property-read boolean|null $as_reseller Whether or not the new account should have reseller privileges
  * @property-read ResellerOptionParams|null $reseller_options Additional options for resellers
@@ -35,7 +35,7 @@ class CreateParams extends DataSet
             'email' => ['required', 'email'],
             'customer_name' => ['nullable', 'string'],
             'password' => ['string'],
-            'domain' => ['required', 'domain_name'],
+            'domain' => ['nullable', 'domain_name'],
             'package_name' => ['required', 'string'],
             'as_reseller' => ['boolean'],
             'reseller_options' => [ResellerOptionParams::class],

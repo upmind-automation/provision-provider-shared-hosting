@@ -63,6 +63,10 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function create(CreateParams $params): AccountInfo
     {
+        if (!$params->domain) {
+            throw $this->errorResult('Domain name is required');
+        }
+
         $hostingId = $this->api()->createPackage(
             $params->package_name,
             $params->domain,

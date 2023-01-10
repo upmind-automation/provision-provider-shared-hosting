@@ -13,7 +13,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|integer|null $customer_id ID of the customer on the hosting platform
  * @property-read string|integer|null $subscription_id ID of the subscription on the hosting platform, if any
  * @property-read string $username Username of the account
- * @property-read string $domain Main domain name of the account
+ * @property-read string|null $domain Main domain name of the account
  * @property-read bool|null $reseller Whether or not the account has reseller privileges
  * @property-read string $server_hostname Hostname of the server the account is on
  * @property-read string $package_name Account package/plan name/identifier
@@ -30,7 +30,7 @@ class AccountInfo extends ResultData
             'customer_id' => ['nullable'],
             'subscription_id' => ['nullable'],
             'username' => ['required', 'string'],
-            'domain' => ['required', 'domain_name'],
+            'domain' => ['nullable', 'domain_name'],
             'reseller' => ['nullable', 'boolean'],
             'server_hostname' => ['required', 'domain_name'],
             'package_name' => ['required', 'string'],
@@ -70,9 +70,9 @@ class AccountInfo extends ResultData
     }
 
     /**
-     * @param string $domain Main domain name of the account
+     * @param string|null $domain Main domain name of the account
      */
-    public function setDomain(string $domain): self
+    public function setDomain(?string $domain): self
     {
         $this->setValue('domain', $domain);
         return $this;

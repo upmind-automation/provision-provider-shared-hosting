@@ -136,6 +136,10 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function create(CreateParams $params): AccountInfo
     {
+        if (!$params->domain) {
+            throw $this->errorResult('Domain name is required');
+        }
+
         $username = $params->username ?: $this->generateUsername($params->domain);
         $password = $params->password ?: Helper::generatePassword();
         $domain = $params->domain;
