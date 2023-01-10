@@ -385,7 +385,7 @@ class Provider extends Category implements ProviderInterface
             throw $this->errorResult('Website domain name is required without subscription id');
         }
 
-        $websites = $this->api()->websites()->getWebsites(
+        $result = $this->api()->websites()->getWebsites(
             $customerId,
             null,
             null,
@@ -403,16 +403,24 @@ class Provider extends Category implements ProviderInterface
             'false'
         );
 
-        if (isset($domain) && $websites->getTotal() !== 1) {
-            throw $this->errorResult(sprintf('Found %s websites for the given domain', $websites->getTotal()), [
-                'customer_id' => $customerId,
-                'subscription_id' => $subscriptionId,
-                'domain' => $domain,
-            ]);
+        $websites = $result->getItems();
+
+        if (isset($domain)) {
+            $websites = array_filter($websites, function (Website $website) use ($domain) {
+                return strcasecmp($domain, $website->getDomain()->getDomain()) === 0;
+            });
+
+            if (count($websites) !== 1) {
+                throw $this->errorResult(sprintf('Found %s websites for the given domain', count($websites)), [
+                    'customer_id' => $customerId,
+                    'subscription_id' => $subscriptionId,
+                    'domain' => $domain,
+                ]);
+            }
         }
 
         /** @var Website $website */
-        if (!$website = Arr::first($websites->getItems())) {
+        if (!$website = Arr::first($websites)) {
             return null;
         }
 
