@@ -778,6 +778,17 @@ class Provider extends Category implements ProviderInterface
 
                 if (isset($responseData['message'])) {
                     $message .= ': ' . $responseData['message'];
+                } elseif (isset($responseData['code'])) {
+                    switch ($responseData['code']) {
+                        case 'not_found':
+                            $object = $responseData['detail'] ?? 'object';
+                            if ($object === 'org') {
+                                $object = 'customer';
+                            }
+
+                            $message .= sprintf(': %s not found', ucfirst($object));
+                            break;
+                    }
                 }
             }
 
