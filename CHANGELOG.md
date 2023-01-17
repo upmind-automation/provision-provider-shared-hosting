@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.6.2 - 2023-01-17
+
+- Update Enhance handleException() improve 404 error messages
+
 ## v5.6.1 - 2023-01-17
 
 - Handle + debug null $result in Enhance findWebsite()
