@@ -9,16 +9,6 @@ This provision category contains the common functions used in provisioning flows
   - [Quick-start](#quick-start)
 - [Supported Providers](#supported-providers)
 - [Functions](#functions)
-  - [create()](#create)
-  - [getInfo()](#getInfo)
-  - [getLoginUrl()](#getLoginUrl)
-  - [changePassword()](#changePassword)
-  - [changePackage()](#changePackage)
-  - [suspend()](#suspend)
-  - [unSuspend()](#unSuspend)
-  - [terminate()](#terminate)
-  - [grantReseller()](#grantReseller)
-  - [revokeReseller()](#revokeReseller)
 - [Changelog](#changelog)
 - [Contributing](#contributing)
 - [Credits](#credits)
@@ -51,45 +41,18 @@ The following providers are currently implemented:
 
 ## Functions
 
-### create()
-
-Creates a web hosting account / website and returns the `username` (and for some providers, a `customer_id` and/or `subscription_id`) which can be used to identify the account in subsequent requests, and other account information.
-
-### getInfo()
-
-Gets information about a hosting account such as the main domain name, whether or not it is suspended, the hostname of it's server, nameservers etc.
-
-### getLoginUrl()
-
-Obtains a signed URL which a user can be redirected to which automatically logs them into their account.
-
-### changePassword()
-
-Changes the password of the hosting account.
-
-### changePackage()
-
-Update the product/package a hosting account is set to.
-
-### suspend()
-
-Suspends services for a hosting account.
-
-### unSuspend()
-
-Un-suspends services for a hosting account.
-
-### terminate()
-
-Completely delete a hosting account.
-
-### grantReseller()
-
-Grants reseller privileges to a web hosting account, if supported.
-
-### revokeReseller()
-
-Revokes reseller privileges from a web hosting account, if supported.
+| Function | Parameters | Return Data | Description |
+|---|---|---|---|
+| create() | [_CreateParams_](src/Data/CreateParams.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Create a web hosting account / website |
+| getInfo() | [_AccountUsername_](src/Data/AccountUsername.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Get information about a hosting account such as the main domain name, whether or not it is suspended, the hostname of it's server, nameservers etc |
+| getLoginUrl() | [_GetLoginUrlParams_](src/Data/GetLoginUrlParams.php) | [_LoginUrl_](src/Data/LoginUrl.php) | Obtain a signed URL to automatically log into a hosting account |
+| changePassword() | [_ChangePasswordParams_](src/Data/ChangePasswordParams.php) | [_EmptyResult_](src/Data/EmptyResult.php) | Change the password of a hosting account |
+| changePackage() | [_ChangePackageParams_](src/Data/ChangePackageParams.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Update the product/package a hosting account is set to |
+| suspend() | [_SuspendParams_](src/Data/SuspendParams.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Suspend service for a hosting account |
+| unSuspend() | [_AccountUsername_](src/Data/AccountUsername.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Un-suspend service for a hosting account |
+| terminate() | [_AccountUsername_](src/Data/AccountUsername.php) | [_EmptyResult_](src/Data/EmptyResult.php) | Completely delete a hosting account |
+| grantReseller() | [_GrantResellerParams_](src/Data/GrantResellerParams.php) | [_ResellerPrivileges_](src/Data/ResellerPrivileges.php) | Grant reseller privileges to a web hosting account, if supported |
+| revokeReseller() | [_AccountUsername_](src/Data/AccountUsername.php) | [_ResellerPrivileges_](src/Data/ResellerPrivileges.php) | Revoke reseller privileges from a web hosting account, if supported |
 
 ## Changelog
 
