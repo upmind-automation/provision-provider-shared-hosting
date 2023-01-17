@@ -74,4 +74,4 @@ GNU General Public License version 3 (GPLv3). Please see [License File](LICENSE.
 
 ## Upmind
 
-Sell, manage and support web hosting, domain names, ssl certificates, website builders and more with [Upmind.com](https://upmind.com/start) - the ultimate web hosting billing and management solution.
+Sell, manage and support web hosting, domain names, ssl certificates, website builders and more with [Upmind.com](https://upmind.com/start).
