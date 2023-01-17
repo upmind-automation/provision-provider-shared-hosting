@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.6.1 - 2023-01-17
+
+- Handle + debug null $result in Enhance findWebsite()
+
 ## v5.6.0 - 2023-01-10
 
 - Make domain optional when creating new Enhance subscriptions
