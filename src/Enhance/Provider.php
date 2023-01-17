@@ -406,6 +406,10 @@ class Provider extends Category implements ProviderInterface
             'false'
         );
 
+        if (!$result) {
+            throw $this->errorResult('Unable to get customer websites', $this->getLastGuzzleRequestDebug());
+        }
+
         $websites = $result->getItems();
 
         if (isset($domain)) {
