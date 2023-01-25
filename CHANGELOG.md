@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.6.3 - 2023-01-25
+
+- Update `upmind/enhance-sdk` to v9
+
 ## v5.6.2 - 2023-01-17
 
 - Update Enhance handleException() improve 404 error messages
