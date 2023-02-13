@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.6.6 - 2023-02-13
+
+- Fix implementation of `remove_www` in v5.6.5
+
 ## v5.6.5 - 2023-02-13
 
 - Update Enhance configuration add `remove_www` setting to optionally remove www.
