@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.6.5 - 2023-02-13
+
+- Update Enhance configuration add `remove_www` setting to optionally remove www.
+  subdomain from hostnames during create()
+
 ## v5.6.4 - 2023-02-13
 
 - Update WHMv1 Provider asyncApiCall() exception handling to catch and re-throw
