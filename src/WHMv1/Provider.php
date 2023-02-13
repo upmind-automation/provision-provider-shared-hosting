@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils as PromiseUtils;
 use Illuminate\Support\Arr;
@@ -674,8 +675,8 @@ class Provider extends SharedHosting implements ProviderInterface
             ];
             $debug = [];
 
-            if ($e instanceof RequestException) {
-                if ($e->hasResponse()) {
+            if ($e instanceof TransferException) {
+                if ($e instanceof RequestException && $e->hasResponse()) {
                     $response = $e->getResponse();
                     $responseBody = $response->getBody()->__toString();
                     $resultData = json_decode($responseBody, true);
