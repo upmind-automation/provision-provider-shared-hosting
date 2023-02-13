@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.6.4 - 2023-02-13
+
+- Update WHMv1 Provider asyncApiCall() exception handling to catch and re-throw
+  any Guzzle TransferException (incl. connection errors/timeouts)
+
 ## v5.6.3 - 2023-01-25
 
 - Update `upmind/enhance-sdk` to v9
