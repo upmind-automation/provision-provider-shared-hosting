@@ -89,13 +89,17 @@ class Provider extends Category implements ProviderInterface
                 $email = $params->email;
             }
 
+            $domain = (!empty($domain) && $this->configuration->remove_www)
+                ? preg_replace('/^www\.(.+)/i', '$1', $params->domain)
+                : $params->domain;
+
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
 
-            if ($params->domain) {
-                $this->createWebsite($customerId, $subscriptionId, $params->domain);
+            if ($domain) {
+                $this->createWebsite($customerId, $subscriptionId, $domain);
             }
 
-            return $this->getSubscriptionInfo($customerId, $subscriptionId, $params->domain, $email)
+            return $this->getSubscriptionInfo($customerId, $subscriptionId, $domain, $email)
                 ->setMessage('Website Created');
         } catch (Throwable $e) {
             throw $this->handleException($e);
