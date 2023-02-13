@@ -89,7 +89,7 @@ class Provider extends Category implements ProviderInterface
                 $email = $params->email;
             }
 
-            $domain = (!empty($domain) && $this->configuration->remove_www)
+            $domain = (!empty($params->domain) && $this->configuration->remove_www)
                 ? preg_replace('/^www\.(.+)/i', '$1', $params->domain)
                 : $params->domain;
 
