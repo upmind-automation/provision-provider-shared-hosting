@@ -2,6 +2,13 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.7 - 2023-02-24
+
+- Add SoftwareInstallation datasets
+- Implement Wordpress installation via softaculous as a WHMv1 configuration variable
+- Implement softaculous installation SSO in WHMv1 getLoginUrl()
+- Add debug logging to WHMv1 provider
+
 ## v5.6.6 - 2023-02-13
 
 - Fix implementation of `remove_www` in v5.6.5
