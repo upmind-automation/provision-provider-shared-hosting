@@ -15,7 +15,8 @@ use Upmind\ProvisionProviders\SharedHosting\WHMv1\Softaculous\SoftaculousSdk;
  * @property-read string $whm_username WHM API username
  * @property-read string $api_key WHM API secret
  * @property-read bool|null $debug Whether to enable logging of API requests + responses
- * @property string|null $install_software Software to install upon account creation
+ * @property-read string|null $softaculous_install Software to install upon account creation
+ * @property-read string|null $sso_destination Which control panel to log into, either cPanel/WHM or Softaculous SSO
  */
 class WHMv1Credentials extends DataSet
 {
@@ -26,10 +27,11 @@ class WHMv1Credentials extends DataSet
             'whm_username' => ['required', 'alpha_num'],
             'api_key' => ['required', 'string'],
             'debug' => ['bool'],
-            'install_software' => [
+            'softaculous_install' => [
                 'nullable',
                 'in:,' . implode(',', array_keys(SoftaculousSdk::SOFTWARE_IDS)),
             ],
+            'sso_destination' => ['nullable', 'in:control_panel,softaculous_sso,auto'],
         ]);
     }
 }

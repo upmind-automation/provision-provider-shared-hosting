@@ -218,11 +218,11 @@ class Provider extends SharedHosting implements ProviderInterface
             }
         }
 
-        if ($this->configuration->install_software) {
+        if ($this->configuration->softaculous_install) {
             try {
                 $softaculous = $this->getSoftaculous($username, $password);
 
-                if ($this->configuration->install_software === 'wordpress') {
+                if ($this->configuration->softaculous_install === 'wordpress') {
                     $installation = $softaculous->installWordpress($params->domain, $params->email);
                 }
 
@@ -311,10 +311,16 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $url = $data['url'];
 
-        if (!empty($params->software->install_id)) {
-            $url = Helper::urlAppendQuery($url, [
-                'goto_uri' => SoftaculousSdk::getInstallationLoginUri($params->software->install_id),
-            ]);
+        if ($this->configuration->sso_destination === 'softaculous_sso' && empty($params->software->install_id)) {
+            throw $this->errorResult('Website software installation ID not given');
+        }
+
+        if (in_array($this->configuration->sso_destination, ['softaculous_sso', 'auto'])) {
+            if (!empty($params->software->install_id)) {
+                $url = Helper::urlAppendQuery($url, [
+                    'goto_uri' => SoftaculousSdk::getInstallationLoginUri($params->software->install_id),
+                ]);
+            }
         }
 
         return LoginUrl::create()

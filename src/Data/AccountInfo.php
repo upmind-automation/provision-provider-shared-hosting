@@ -154,7 +154,7 @@ class AccountInfo extends ResultData
      */
     public function setSoftware($installation): self
     {
-        $this->setValue('software_installation', $installation);
+        $this->setValue('software', $installation);
         return $this;
     }
 }
