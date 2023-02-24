@@ -15,7 +15,7 @@
         }
     },
     "require": {
-        "upmind/provision-provider-base": "^3.4",
+        "upmind/provision-provider-base": "^3.6",
         "plesk/api-php-lib": "^1.1",
         "upmind/20i-php-sdk": "^1.0",
         "upmind/enhance-sdk": "^9.0"
