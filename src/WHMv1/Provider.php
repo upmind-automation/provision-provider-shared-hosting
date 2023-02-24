@@ -755,6 +755,7 @@ class Provider extends SharedHosting implements ProviderInterface
             'timeout' => 60,
             'http_errors' => true,
             'allow_redirects' => false,
+            'handler' => $this->getGuzzleHandlerStack(!!$this->configuration->debug),
         ]);
     }
 }
