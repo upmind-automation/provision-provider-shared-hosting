@@ -21,6 +21,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|null $suspend_reason Reason for suspension
  * @property-read string|null $ip Account ip address
  * @property-read string[]|null $nameservers
+ * @property-read SoftwareInstallation|null $software
  */
 class AccountInfo extends ResultData
 {
@@ -39,6 +40,7 @@ class AccountInfo extends ResultData
             'ip' => ['nullable', 'ip'],
             'nameservers' => ['nullable', 'array'],
             'nameservers.*' => ['string'],
+            'software' => ['nullable', SoftwareInstallation::class],
         ]);
     }
 
@@ -144,6 +146,15 @@ class AccountInfo extends ResultData
         }
 
         $this->setValue('nameservers', $nameservers);
+        return $this;
+    }
+
+    /**
+     * @param SoftwareInstallation|array|null $installation
+     */
+    public function setSoftware($installation): self
+    {
+        $this->setValue('software_installation', $installation);
         return $this;
     }
 }
