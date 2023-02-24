@@ -35,6 +35,7 @@ use Upmind\ProvisionProviders\SharedHosting\Data\ResellerOptionParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
 use Upmind\ProvisionProviders\SharedHosting\WHMv1\Data\WHMv1Credentials;
+use Upmind\ProvisionProviders\SharedHosting\WHMv1\Softaculous\SoftaculousSdk;
 
 class Provider extends SharedHosting implements ProviderInterface
 {
@@ -179,7 +180,7 @@ class Provider extends SharedHosting implements ProviderInterface
             if ($this->exceptionWasTimeout($createException)) {
                 try {
                     // just in case WHM is running any weird post-create scripts, let's see if we can return success
-                    return $this->finishCreate($username, $params->reseller_options)
+                    return $this->finishCreate($params, $username, $password)
                         ->setMessage('Account creation in progress')
                         ->setDebug([
                             'provider_exception' => ProviderResult::formatException(
@@ -198,17 +199,34 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $createException;
         }
 
-        return $this->finishCreate($username, $params->reseller_options);
+        return $this->finishCreate($params, $username, $password);
     }
 
-    protected function finishCreate(string $username, ?ResellerOptionParams $resellerOptions): AccountInfo
+    protected function finishCreate(CreateParams $params, string $username, string $password): AccountInfo
     {
         $info = $this->getAccountInfo($username)
             ->setMessage('Account created');
 
-        if ($info->reseller && $resellerOptions) {
+        if ($info->reseller && $params->reseller_options) {
             try {
-                $this->changeResellerOptions($username, $resellerOptions);
+                $this->changeResellerOptions($username, $params->reseller_options);
+            } catch (\Throwable $e) {
+                // clean-up
+                $this->deleteAccount($username);
+
+                throw $e;
+            }
+        }
+
+        if ($this->configuration->install_software) {
+            try {
+                $softaculous = $this->getSoftaculous($username, $password);
+
+                if ($this->configuration->install_software === 'wordpress') {
+                    $installation = $softaculous->installWordpress($params->domain, $params->email);
+                }
+
+                $info->setSoftware($installation);
             } catch (\Throwable $e) {
                 // clean-up
                 $this->deleteAccount($username);
@@ -291,9 +309,17 @@ class Provider extends SharedHosting implements ProviderInterface
         $response = $this->makeApiCall('POST', 'create_user_session', $requestParams);
         $data =  $this->processResponse($response);
 
+        $url = $data['url'];
+
+        if (!empty($params->software->install_id)) {
+            $url = Helper::urlAppendQuery($url, [
+                'goto_uri' => SoftaculousSdk::getInstallationLoginUri($params->software->install_id),
+            ]);
+        }
+
         return LoginUrl::create()
             ->setMessage('Login URL generated')
-            ->setLoginUrl($data['url'])
+            ->setLoginUrl($url)
             ->setForIp(null) //cpanel login urls aren't tied to specific IDs
             ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
     }
@@ -730,6 +756,13 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         return $this->errorResult('WHM API Error: ' . $message, $data, $debug);
+    }
+
+    protected function getSoftaculous(string $username, string $password): SoftaculousSdk
+    {
+        return new SoftaculousSdk($username, $password, $this->configuration, new Client([
+            'handler' => $this->getGuzzleHandlerStack(!!$this->configuration->debug),
+        ]));
     }
 
     protected function getClient(): Client
