@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## 5.8 - 2023-03-15
+
+- Add Example provider as a basic template for creating new providers
+- Add stateless Demo provider which returns fake data
+
 ## v5.7 - 2023-02-24
 
 - Add SoftwareInstallation datasets
