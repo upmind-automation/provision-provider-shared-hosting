@@ -48,7 +48,7 @@ class Provider extends Category implements ProviderInterface
     public function create(CreateParams $params): AccountInfo
     {
         $customerId = $params->customer_id ?? uniqid();
-        $subscriptionId = uniqid();
+        $subscriptionId = uniqid('s-');
         $username = $params->username ?? $params->email;
 
         $info = $this->getAccountInfo(
@@ -60,7 +60,7 @@ class Provider extends Category implements ProviderInterface
 
         return $info->setMessage('Demo account created')
             ->setPackageName($params->package_name)
-            ->setReseller($params->as_reseller);
+            ->setReseller(boolval($params->as_reseller));
     }
 
     /**
@@ -107,7 +107,7 @@ class Provider extends Category implements ProviderInterface
         );
         return $info->setMessage('Demo package changed')
             ->setPackageName($params->package_name)
-            ->setReseller($params->as_reseller);
+            ->setReseller(boolval($params->as_reseller));
     }
 
     /**
