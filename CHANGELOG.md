@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.8.1 - 2023-03-15
+
+- Update Demo provider AccountInfo
+
 ## 5.8 - 2023-03-15
 
 - Add Example provider as a basic template for creating new providers
