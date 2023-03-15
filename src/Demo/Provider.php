@@ -190,6 +190,12 @@ class Provider extends Category implements ProviderInterface
             ->setServerHostname($this->configuration->hostname)
             ->setPackageName('Demo Hosting Package')
             ->setReseller(false)
-            ->setSuspended(false);
+            ->setSuspended(false)
+            ->setNameservers([
+                'ns1.' . $this->configuration->hostname,
+                'ns2.' . $this->configuration->hostname,
+                'ns3.' . $this->configuration->hostname,
+            ])
+            ->setIp('123.123.123.123');
     }
 }
