@@ -21,6 +21,9 @@ use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
 use Upmind\ProvisionProviders\SharedHosting\Example\Data\Configuration;
 
+/**
+ * Example hosting provider template.
+ */
 class Provider extends Category implements ProviderInterface
 {
     protected Configuration $configuration;
