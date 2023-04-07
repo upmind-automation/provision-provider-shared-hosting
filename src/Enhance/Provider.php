@@ -356,7 +356,12 @@ class Provider extends Category implements ProviderInterface
         ?string $domain,
         ?string $email = null
     ): AccountInfo {
-        $website = $this->findWebsite($customerId, $subscriptionId, $domain);
+        $website = $this->findWebsite($customerId, $subscriptionId, $domain, false);
+
+        if (!$website && !empty($domain)) {
+            // deleted domain - try again with no domain name
+            $website = $this->findWebsite($customerId, $subscriptionId, null, false);
+        }
 
         $subscription = $this->api()->subscriptions()
             ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
@@ -386,8 +391,12 @@ class Provider extends Category implements ProviderInterface
             ]);
     }
 
-    protected function findWebsite(string $customerId, ?int $subscriptionId = null, ?string $domain = null): ?Website
-    {
+    protected function findWebsite(
+        string $customerId,
+        ?int $subscriptionId = null,
+        ?string $domain = null,
+        bool $orFail = true
+    ): ?Website {
         if (!$subscriptionId && !$domain) {
             throw $this->errorResult('Website domain name is required without subscription id');
         }
@@ -411,6 +420,10 @@ class Provider extends Category implements ProviderInterface
         );
 
         if (!$result) {
+            if (!$orFail) {
+                return null;
+            }
+
             throw $this->errorResult('Unable to get customer websites', $this->getLastGuzzleRequestDebug());
         }
 
@@ -422,6 +435,10 @@ class Provider extends Category implements ProviderInterface
             });
 
             if (count($websites) !== 1) {
+                if (!$orFail) {
+                    return null;
+                }
+
                 throw $this->errorResult(sprintf('Found %s websites for the given domain', count($websites)), [
                     'customer_id' => $customerId,
                     'subscription_id' => $subscriptionId,
@@ -635,7 +652,7 @@ class Provider extends Category implements ProviderInterface
 
     protected function getSsoUrl(string $customerId, ?int $subscriptionId = null, ?string $domain = null): string
     {
-        if ($website = $this->findWebsite($customerId, $subscriptionId, $domain ?: null)) {
+        if ($website = $this->findWebsite($customerId, $subscriptionId, $domain ?: null, false)) {
             $websiteId = $website->getId();
         }
 
