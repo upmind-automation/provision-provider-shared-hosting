@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v5.8.2 - 2023-04-07
+
+- Update Enhance provider, add better tolerance for website domain not found
+
 ## v5.8.1 - 2023-03-15
 
 - Update Demo provider AccountInfo
