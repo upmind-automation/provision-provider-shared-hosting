@@ -261,7 +261,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
         return ResellerPrivileges::create()
             ->setMessage('Reseller privileges revoked')
-            ->setReseller(true);
+            ->setReseller(false);
     }
 
     public function getInfo(AccountUsername $params): AccountInfo
