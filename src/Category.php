@@ -8,6 +8,7 @@ use Upmind\ProvisionBase\Provider\BaseCategory;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionBase\Provider\DataSet\ResultData;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\EmptyResult;
 use Upmind\ProvisionProviders\SharedHosting\Data\GetLoginUrlParams;
@@ -52,6 +53,12 @@ abstract class Category extends BaseCategory
      * etc.
      */
     abstract public function getInfo(AccountUsername $params): AccountInfo;
+
+    /**
+     * Gets usage information about an account/reseller such as disk space,
+     * bandwidth, number of sub-accounts etc.
+     */
+    abstract public function getUsage(AccountUsername $params): AccountUsage;
 
     /**
      * Obtains a signed URL which a user can be redirected to which

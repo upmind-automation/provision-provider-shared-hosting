@@ -18,11 +18,13 @@ use Upmind\EnhanceSdk\Model\NewSubscription;
 use Upmind\EnhanceSdk\Model\NewWebsite;
 use Upmind\EnhanceSdk\Model\PhpVersion;
 use Upmind\EnhanceSdk\Model\Plan;
+use Upmind\EnhanceSdk\Model\ResourceName;
 use Upmind\EnhanceSdk\Model\Role;
 use Upmind\EnhanceSdk\Model\ServerIp;
 use Upmind\EnhanceSdk\Model\Status;
 use Upmind\EnhanceSdk\Model\UpdateSubscription;
 use Upmind\EnhanceSdk\Model\UpdateWebsite;
+use Upmind\EnhanceSdk\Model\UsedResource;
 use Upmind\EnhanceSdk\Model\Website;
 use Upmind\EnhanceSdk\Model\WebsiteAppKind;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
@@ -32,6 +34,7 @@ use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -195,6 +198,23 @@ class Provider extends Category implements ProviderInterface
             $subscriptionId = intval($params->subscription_id) ?: null;
 
             return $this->getSubscriptionInfo(
+                $customerId,
+                $subscriptionId,
+                $params->domain,
+                $params->username
+            );
+        } catch (Throwable $e) {
+            throw $this->handleException($e);
+        }
+    }
+
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        try {
+            $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
+            $subscriptionId = intval($params->subscription_id) ?: null;
+
+            return $this->getSubscriptionUsage(
                 $customerId,
                 $subscriptionId,
                 $params->domain,
@@ -389,6 +409,79 @@ class Provider extends Category implements ProviderInterface
                 'website' => $website ? $website->jsonSerialize() : null,
                 'subscription' => $subscription->jsonSerialize(),
             ]);
+    }
+
+    protected function getSubscriptionUsage(
+        string $customerId,
+        ?int $subscriptionId,
+        ?string $domain
+    ): AccountUsage {
+        if (!$subscriptionId) {
+            $website = $this->findWebsite($customerId, $subscriptionId, $domain, false);
+
+            if (!$website && !empty($domain)) {
+                // deleted domain - try again with no domain name
+                $website = $this->findWebsite($customerId, $subscriptionId, null, false);
+            }
+        }
+
+        $subscription = $this->api()->subscriptions()
+            ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
+
+        if ($subscription->getStatus() === Status::DELETED) {
+            throw $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
+        }
+
+        $usage = array_reduce($subscription->getResources(), function (array $usage, UsedResource $resource) {
+            switch ($resource->getName()) {
+                case ResourceName::DISKSPACE:
+                    $diskUsed = $this->bytesToMb($resource->getUsage());
+                    $diskLimit = $this->bytesToMb($resource->getTotal());
+
+                    $usage['disk_mb'] = [
+                        'used' => $diskUsed,
+                        'limit' => $diskLimit,
+                        'used_pc' => $diskLimit ? round($diskUsed / $diskLimit * 100, 2) . '%' : null,
+                    ];
+                    break;
+                case ResourceName::TRANSFER:
+                    $bandwidthUsed = $this->bytesToMb($resource->getUsage());
+                    $bandwidthLimit = $this->bytesToMb($resource->getTotal());
+
+                    $usage['bandwidth_mb'] = [
+                        'used' => $bandwidthUsed,
+                        'limit' => $bandwidthLimit,
+                        'used_pc' => $bandwidthLimit ? round($bandwidthUsed / $bandwidthLimit * 100, 2) . '%' : null,
+                    ];
+                    break;
+                case ResourceName::WEBSITES:
+                    $websitesUsed = $resource->getUsage();
+                    $websitesLimit = $resource->getTotal();
+
+                    $usage['websites'] = [
+                        'used' => $websitesUsed,
+                        'limit' => $websitesLimit,
+                        'used_pc' => $websitesLimit ? round($websitesUsed / $websitesLimit * 100, 2) . '%' : null,
+                    ];
+                    break;
+                case ResourceName::MAILBOXES:
+                    $mailboxesUsed = $resource->getUsage();
+                    $mailboxesLimit = $resource->getTotal();
+
+                    $usage['mailboxes'] = [
+                        'used' => $mailboxesUsed,
+                        'limit' => $mailboxesLimit,
+                        'used_pc' => $mailboxesLimit ? round($mailboxesUsed / $mailboxesLimit * 100, 2) . '%' : null,
+                    ];
+                    break;
+            }
+
+            return $usage;
+        }, []);
+
+        return new AccountUsage([
+            'usage_data' => $usage,
+        ]);
     }
 
     protected function findWebsite(
@@ -739,6 +832,11 @@ class Provider extends Category implements ProviderInterface
     protected function isUuid($string): bool
     {
         return boolval(preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', (string)$string));
+    }
+
+    protected function bytesToMb(?int $bytes): ?int
+    {
+        return isset($bytes) ? intval($bytes / 1000 / 1000) : null;
     }
 
     protected function api(): Api

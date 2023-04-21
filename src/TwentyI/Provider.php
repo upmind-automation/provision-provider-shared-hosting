@@ -18,6 +18,7 @@ use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionBase\Result\ProviderResult;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -86,6 +87,11 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         return $info;
+    }
+
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        throw $this->errorResult('Operation not supported');
     }
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl

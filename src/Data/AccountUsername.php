@@ -14,6 +14,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|integer|null $subscription_id ID of the subscription on the hosting platform, if any
  * @property-read string $username Username of the account
  * @property-read string|null $domain Domain name for this account/subscription
+ * @property-read bool|null $is_reseller Whether or not the account has reseller privileges
  */
 class AccountUsername extends DataSet
 {
@@ -24,6 +25,7 @@ class AccountUsername extends DataSet
             'subscription_id' => ['nullable'],
             'username' => ['required', 'string'],
             'domain' => ['nullable', 'domain_name'],
+            'is_reseller' => ['nullable', 'boolean'],
         ]);
     }
 }

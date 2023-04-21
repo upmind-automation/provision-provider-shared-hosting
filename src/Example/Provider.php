@@ -10,6 +10,7 @@ use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -66,6 +67,11 @@ class Provider extends Category implements ProviderInterface
             ->setPackageName('Example Hosting')
             ->setReseller(false)
             ->setSuspended(false);
+    }
+
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        throw $this->errorResult('Not implemented');
     }
 
     /**

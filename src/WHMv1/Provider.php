@@ -23,6 +23,7 @@ use Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\Request;
 use Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\Response;
 use Upmind\ProvisionBase\Result\ProviderResult;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -33,7 +34,9 @@ use Upmind\ProvisionProviders\SharedHosting\Data\GrantResellerParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerOptionParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
+use Upmind\ProvisionProviders\SharedHosting\Data\ResellerUsageData;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
+use Upmind\ProvisionProviders\SharedHosting\Data\UsageData;
 use Upmind\ProvisionProviders\SharedHosting\WHMv1\Data\WHMv1Credentials;
 use Upmind\ProvisionProviders\SharedHosting\WHMv1\Softaculous\SoftaculousSdk;
 
@@ -266,7 +269,56 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getInfo(AccountUsername $params): AccountInfo
     {
-        return $this->getAccountInfo($params->username);
+        return $this->getAccountInfo(
+            $params->username,
+            isset($params->is_reseller) ? boolval($params->is_reseller) : null
+        );
+    }
+
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        $username = $params->username;
+
+        $promises = [
+            'accSummary' => $this->asyncApiCall('POST', 'accountsummary', ['user' => $username]),
+            'bandwidth' => $this->asyncApiCall('POST', 'showbw', ['searchtype' => 'user', 'search' => $username]),
+            // 'domains' => $this->asyncApiCall('POST', 'get_domain_info', ['user' => $username]),
+        ];
+
+        if ($isReseller = ($params->is_reseller ?? $this->userIsReseller($username))) {
+            $promises['resellerInfo'] = $this->asyncApiCall('POST', 'resellerstats', ['user' => $username]);
+            $promises['resellerSubAccounts'] = $this->asyncApiCall('POST', 'acctcounts', ['user' => $username]);
+        }
+
+        $responses = PromiseUtils::all($promises)->wait();
+
+        $accSummary = $this->processResponse($responses['accSummary'], function ($responseData) {
+            return collect(Arr::get($responseData, 'acct'))->collapse()->sortKeys()->all();
+        });
+
+        $bandwidth = $this->processResponse($responses['bandwidth'], function ($responseData) {
+            return Arr::get($responseData, 'acct.0');
+        });
+
+        // $domains = $this->processResponse($responses['domains'], function ($responseData) {
+        //     return Arr::get($responseData, 'domains');
+        // });
+
+        if ($isReseller) {
+            $resellerInfo = $this->processResponse($responses['resellerInfo'], function ($responseData) {
+                return Arr::get($responseData, 'reseller');
+            });
+
+            $resellerSubAccounts = $this->processResponse($responses['resellerSubAccounts'], function ($responseData) {
+                return Arr::get($responseData, 'reseller');
+            });
+        }
+
+        return AccountUsage::create()
+            ->setUsageData($this->rawDataToUsageData($accSummary, $bandwidth))
+            ->setResellerUsageData(
+                $isReseller ? $this->rawDataToResellerUsageData($resellerInfo, $resellerSubAccounts) : null
+            );
     }
 
     public function changePackage(ChangePackageParams $params): AccountInfo
@@ -453,7 +505,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
-    public function getAccountInfo(string $username): AccountInfo
+    public function getAccountInfo(string $username, ?bool $isReseller = null): AccountInfo
     {
         $promises = [
             'accSummary' => $this->asyncApiCall('POST', 'accountsummary', ['user' => $username]),
@@ -474,7 +526,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Account info retrieved')
             ->setUsername($accSummary['user'])
             ->setDomain($accSummary['domain'])
-            ->setReseller($this->userIsReseller($username))
+            ->setReseller($isReseller ?? $this->userIsReseller($username))
             ->setServerHostname($this->configuration->hostname)
             ->setPackageName($accSummary['plan'])
             ->setSuspended(boolval($accSummary['suspended']))
@@ -627,6 +679,105 @@ class Provider extends SharedHosting implements ProviderInterface
     protected function getMaxUsernameLength(): int
     {
         return 8; //some server versions support 16, but earlier only support max 8
+    }
+
+    /**
+     * @param array $accSummaryData Raw data from `accountsummary`
+     * @param array $bandwidthData Raw data from `showbw`
+     */
+    protected function rawDataToUsageData(array $accSummaryData, array $bandwidthData): UsageData
+    {
+        $diskUsedMb = round(rtrim($accSummaryData['diskused'] ?: '', 'M') ?: 0);
+        $diskLimitMb = $accSummaryData['disklimit'] !== 'unlimited' ? rtrim($accSummaryData['disklimit'], 'M') : null;
+        $diskPcUsed = is_numeric($diskLimitMb)
+            ? round(($diskUsedMb) / $diskLimitMb * 100, 2) . '%'
+            : null;
+
+        $bandwidthUsedMb = round($bandwidthData['totalbytes'] / 1024 / 1024);
+        $bandwidthLimitMb = $bandwidthData['bwlimited'] ? round($bandwidthData['limit'] / 1024 / 1024) : null;
+        $bandwidthPcUsed = is_numeric($bandwidthLimitMb)
+            ? round(($bandwidthUsedMb ?: 0) / $bandwidthLimitMb * 100, 2) . '%'
+            : null;
+
+        $inodesUsed = $accSummaryData['inodesused'] ?? 0;
+        $inodesLimit = $accSummaryData['inodeslimit'] !== 'unlimited' ? $accSummaryData['inodeslimit'] : null;
+        $inodesPcUsed = is_numeric($inodesLimit)
+            ? round(($inodesUsed ?: 0) / $inodesLimit * 100, 2) . '%'
+            : null;
+
+        return new UsageData([
+            'disk_mb' => [
+                'used' => $diskUsedMb,
+                'limit' => $diskLimitMb,
+                'used_pc' => $diskPcUsed,
+            ],
+            'bandwidth_mb' => [
+                'used' => $bandwidthUsedMb,
+                'limit' => $bandwidthLimitMb,
+                'used_pc' => $bandwidthPcUsed,
+            ],
+            'inodes' => [
+                'used' => $inodesUsed,
+                'limit' => $inodesLimit,
+                'used_pc' => $inodesPcUsed,
+            ],
+        ]);
+    }
+
+    /**
+     * @param array $resellerStatsData Raw data from `resellerstats`
+     * @param array $accountCountData Raw data from `acctcounts`
+     */
+    protected function rawDataToResellerUsageData(array $resellerStatsData, array $accountCountData): ResellerUsageData
+    {
+        $diskUsedMb = round($resellerStatsData['diskused'] ?: 0);
+        $diskLimitMb = $resellerStatsData['diskquota'] ?: null;
+        $diskPcUsed = is_numeric($diskLimitMb)
+            ? round(($diskUsedMb) / $diskLimitMb * 100, 2) . '%'
+            : null;
+
+        $bandwidthUsedMb = round($resellerStatsData['totalbwused'] ?: 0);
+        $bandwidthLimitMb = $resellerStatsData['bandwidthlimit'] ?: null;
+        $bandwidthPcUsed = is_numeric($bandwidthLimitMb)
+            ? round(($bandwidthUsedMb ?: 0) / $bandwidthLimitMb * 100, 2) . '%'
+            : null;
+
+        $subAccountsUsed = ($accountCountData['active'] ?: 0) + ($accountCountData['suspended'] ?: 0);
+        $subAccountsLimit = $accountCountData['limit'] ?: null;
+        $subAccountsPcUsed = is_numeric($subAccountsLimit)
+            ? round(($subAccountsUsed ?: 0) / $subAccountsLimit * 100, 2) . '%'
+            : null;
+
+        return new ResellerUsageData([
+            'disk_mb' => [
+                'used' => $diskUsedMb,
+                'limit' => $diskLimitMb,
+                'used_pc' => $diskPcUsed,
+            ],
+            'bandwidth_mb' => [
+                'used' => $bandwidthUsedMb,
+                'limit' => $bandwidthLimitMb,
+                'used_pc' => $bandwidthPcUsed,
+            ],
+            'sub_accounts' => [
+                'used' => $subAccountsUsed,
+                'limit' => $subAccountsLimit,
+                'used_pc' => $subAccountsPcUsed,
+            ],
+        ]);
+    }
+
+    protected function countAddonDomains(array $domains, string $username): int
+    {
+        $count = 0;
+
+        foreach ($domains as $domain) {
+            if ($domain['user'] === $username && $domain['domain_type'] === 'addon') {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /**

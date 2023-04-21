@@ -9,6 +9,7 @@ use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -18,6 +19,7 @@ use Upmind\ProvisionProviders\SharedHosting\Data\GrantResellerParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
+use Upmind\ProvisionProviders\SharedHosting\Data\UnitsConsumed;
 use Upmind\ProvisionProviders\SharedHosting\Demo\Data\Configuration;
 
 /**
@@ -74,6 +76,25 @@ class Provider extends Category implements ProviderInterface
             $params->subscription_id,
             $params->domain
         )->setMessage('Demo account info retrieved');
+    }
+
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        return AccountUsage::create()
+            ->setUsageData([
+                'disk_mb' => UnitsConsumed::create()
+                    ->setUsed(150)
+                    ->setLimit(500)
+                    ->setUsedPc(round(150 / 500 * 100, 2) . '%'),
+                'bandwidth_mb' => UnitsConsumed::create()
+                    ->setUsed(4000)
+                    ->setLimit(10000)
+                    ->setUsedPc(round(4000 / 10000 * 100, 2) . '%'),
+                'inodes' => UnitsConsumed::create()
+                    ->setUsed(1000)
+                    ->setLimit(5000)
+                    ->setUsedPc(round(1000 / 5000 * 100, 2) . '%'),
+            ])->setMessage('Account usage data retrieved');
     }
 
     /**

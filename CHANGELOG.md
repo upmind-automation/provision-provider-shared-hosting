@@ -2,6 +2,13 @@
 
 All notable changes to the package will be documented in this file.
 
+## v6.0.0 - 2023-04-21
+
+- Fix WHMv1 revokeReseller() return data
+- Add `is_reseller` to AccountUsername params
+- Add getUsage() function
+- Implement getUsage() function for WHMv1 and Enhance providers
+
 ## v5.8.2 - 2023-04-07
 
 - Update Enhance provider, add better tolerance for website domain not found

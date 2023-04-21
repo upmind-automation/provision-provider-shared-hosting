@@ -45,6 +45,7 @@ The following providers are currently implemented:
 |---|---|---|---|
 | create() | [_CreateParams_](src/Data/CreateParams.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Create a web hosting account / website |
 | getInfo() | [_AccountUsername_](src/Data/AccountUsername.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Get information about a hosting account such as the main domain name, whether or not it is suspended, the hostname of it's server, nameservers etc |
+| getUsage() | [_AccountUsername_](src/Data/AccountUsername.php) | [_AccountUsage_](src/Data/AccountUsage.php) | Gets usage information about an account/reseller such as disk space, bandwidth, number of sub-accounts etc |
 | getLoginUrl() | [_GetLoginUrlParams_](src/Data/GetLoginUrlParams.php) | [_LoginUrl_](src/Data/LoginUrl.php) | Obtain a signed URL to automatically log into a hosting account |
 | changePassword() | [_ChangePasswordParams_](src/Data/ChangePasswordParams.php) | [_EmptyResult_](src/Data/EmptyResult.php) | Change the password of a hosting account |
 | changePackage() | [_ChangePackageParams_](src/Data/ChangePackageParams.php) | [_AccountInfo_](src/Data/AccountInfo.php) | Update the product/package a hosting account is set to |

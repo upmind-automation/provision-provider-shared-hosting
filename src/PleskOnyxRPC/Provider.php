@@ -20,6 +20,7 @@ use Throwable;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -583,6 +584,11 @@ class Provider extends SharedHosting implements ProviderInterface
         } catch (PleskException | PleskClientException | ProviderError $e) {
             return $this->handleException($e, 'Get reseller info');
         }
+    }
+
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        throw $this->errorResult('Operation not supported');
     }
 
     public function changePackage(ChangePackageParams $params): AccountInfo
