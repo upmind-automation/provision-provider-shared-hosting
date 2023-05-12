@@ -74,7 +74,7 @@ class Provider extends Category implements ProviderInterface
             'createZoneRecord' => true
         ];
 
-        $this->getClient('Packages', 'CreateUserWizard', $client_params)->CreateUserWizardResult;
+        $this->apiCall('Packages', 'CreateUserWizard', $client_params)->CreateUserWizardResult;
 
         return $this->getInfo(AccountUsername::create(['username' => $params['username']]))->setMessage('Account created successfully');
     }
@@ -111,12 +111,12 @@ class Provider extends Category implements ProviderInterface
     {
         return LoginUrl::create()
                 ->setMessage('Showing login url')
-                ->setLoginUrl('http://ccp.my-hosting-panel.com/');
+                ->setLoginUrl('');
     }
-    public function getInfoByUsername($username): Object
+    public function getInfoByUsername($username): stdClass
     {
         $client_params = ['username' => $username];
-        $result = $this->getClient('Users', 'GetUserByUsername', $client_params);
+        $result = $this->apiCall('Users', 'GetUserByUsername', $client_params);
 
         if(!(array)$result) {
             throw $this->errorResult($this->getFriendlyError('-101'));
@@ -126,8 +126,9 @@ class Provider extends Category implements ProviderInterface
     }
     public function getPackage($username): Object
     {
-        $client_params = ['username' => $username];
-        $result = $this->getClient('Packages', 'GetMyPackages', $client_params, true)->GetMyPackagesResult->PackageInfo;
+        $userId = $this->getInfoByUsername($params['username'])->UserId;
+        $client_params = ['username' => $username, 'userId' => $userId ];
+        $result = $this->apiCall('Packages', 'GetMyPackages', $client_params)->GetMyPackagesResult->PackageInfo;
 
         return $result;
     }
@@ -136,8 +137,9 @@ class Provider extends Category implements ProviderInterface
      */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        $client_params = ['username' => $params['username'], 'password' => $params['password']];
-        $this->getClient('Users', 'ChangeUserPassword', $client_params, true)->ChangeUserPasswordResult;
+        $userId = $this->getInfoByUsername($params['username'])->UserId;
+        $client_params = ['username' => $params['username'], 'password' => $params['password'], 'userId' => $userId ];
+        $this->apiCall('Users', 'ChangeUserPassword', $client_params)->ChangeUserPasswordResult;
 
         return $this->emptyResult('Password changed');
     }
@@ -147,43 +149,27 @@ class Provider extends Category implements ProviderInterface
      */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
-
         $package = $this->getPackage($params['username']);
-
-        // This is for testing purposes !
-        switch($params['package_name']) {
-            case "Soho":
-                $planId = 13953;
-                break;
-            case "Business":
-                $planId = 10257;
-                break;
-            case "Mocha":
-                $planId = 10258;
-                break;
-        }
         $client_params = [
                           'packageId' => $package->PackageId,
                           'statusId' => $package->StatusId,
-                          'planId' => $planId,
+                          'planId' => $params['package_name'],
                           'purchaseDate' => $package->PurchaseDate,
                           'packageName' => $params['package_name'],
                           'packageComments' => isset($package->packageComments) ? $package->packageComments : ''
                          ];
-
-        $this->getClient('Packages', 'UpdatePackageLiteral', $client_params)->UpdatePackageLiteralResult;
+        $this->apiCall('Packages', 'UpdatePackageLiteral', $client_params)->UpdatePackageLiteralResult;
 
         return $this->getInfo(AccountUsername::create(['username' => $params['username']]))->setMessage('Package updated');
-
     }
-
     /**
      * @inheritDoc
      */
     public function suspend(SuspendParams $params): AccountInfo
     {
-        $client_params = ['username' => $username, 'status' => 'Suspended'];
-        $this->getClient('Users', 'ChangeUserStatus', $client_params, true)->ChangeUserStatusResult;
+        $userId = $this->getInfoByUsername($params['username'])->UserId;
+        $client_params = ['username' => $params['username'], 'status' => 'Suspended', 'userId' => $userId ];
+        $this->apiCall('Users', 'ChangeUserStatus', $client_params)->ChangeUserStatusResult;
 
         return $this->getInfo(AccountUsername::create(['username' => $username]))->setMessage('Account suspended');
     }
@@ -192,8 +178,9 @@ class Provider extends Category implements ProviderInterface
      */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
-        $client_params = ['username' => $username, 'status' => 'Active'];
-        $this->getClient('Users', 'ChangeUserStatus', $client_params, true)->ChangeUserStatusResult;
+        $userId = $this->getInfoByUsername($params['username'])->UserId;
+        $client_params = ['username' => $params['username'], 'status' => 'Active', 'userId' => $userId ];
+        $this->apiCall('Users', 'ChangeUserStatus', $client_params)->ChangeUserStatusResult;
 
         return $this->getInfo(AccountUsername::create(['username' => $username]))->setMessage('Account is now Active');
     }
@@ -202,9 +189,9 @@ class Provider extends Category implements ProviderInterface
      */
     public function terminate(AccountUsername $params): EmptyResult
     {
-
-        $client_params = ['username' => $params['username']];
-        $result = $this->getClient('Users', 'DeleteUser', $client_params, true)->DeleteUserResult;
+        $userId = $this->getInfoByUsername($params['username'])->UserId;
+        $client_params = [ 'username' => $params['username'], 'userId' => $userId ];
+        $result = $this->apiCall('Users', 'DeleteUser', $client_params)->DeleteUserResult;
         if($result < 0) {
             throw $this->errorResult($this->getFriendlyError($result));
         }
@@ -220,7 +207,7 @@ class Provider extends Category implements ProviderInterface
         $client_params->RoleId = $roleid;
         $client_params->Role = ($roleid == '2') ? 'Reseller' : 'User';
 
-        $this->getClient('Users', 'UpdateUser', array('user' => $client_params))->UpdateUserResult;
+        $this->apiCall('Users', 'UpdateUser', array('user' => $client_params))->UpdateUserResult;
 
         return ResellerPrivileges::create()
             ->setMessage($message)
@@ -241,16 +228,10 @@ class Provider extends Category implements ProviderInterface
     /**
      * Get a SOAP
      */
-    protected function getClient($service, $method, $params, $finduser = false)
+    protected function apiCall($service, $method, $params)
     {
         $serverPort = $this->configuration->port ?: 9002;
         $host = "http://{$this->configuration->hostname}:{$serverPort}/es{$service}.asmx?WSDL";
-
-        // If only username is given and we need userid
-        if($finduser) {
-            $params['userId'] = $this->getInfoByUsername($params['username'])->UserId;
-            unset($params['username']);
-        }
 
         try {
             // Create the SoapClient
@@ -263,7 +244,6 @@ class Provider extends Category implements ProviderInterface
                                                 'cache_wsdl'  => ($this->caching) ? 1 : 0
                                             ]
             );
-
             // Execute the request and process the results
             return call_user_func(array($client, $method), $params);
         } catch (\SoapFault $e) {
@@ -293,7 +273,7 @@ class Provider extends Category implements ProviderInterface
         if (array_key_exists($code, $errors)) {
             return $errors[$code];
         } else {
-            return "An unknown error occured (Code: {$code}). Please reference SolidCP BusinessErrorCodes for further information";
+            return "An unknown error occured (Code: {$code}).";
         }
     }
 }
