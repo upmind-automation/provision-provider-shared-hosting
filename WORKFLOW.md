@@ -36,7 +36,7 @@ These are the acceptance criteria for new providers.
 - Use the `src/Example/` directory as a basic template for the new provider; do **not** copy + paste an existing Provider class because each provider must be implemented differently
 - Implement the Configuration DTO class (used to construct the provider) under the same namespace as the new Provider
 - Implement PSR-3 debug logging of all API requests + responses
-- Implement all provider functions where possible. E.g., where polling is not possible it’s fine to throw an error like “Operation not supported”
+- Implement all provider functions where possible. E.g., where `terminate()` is not possible it’s fine to throw an error like “Operation not supported”
 - Throw (or re-throw) normal/expected errors (e.g., data/state/auth issues) as a ProvisionFunctionError using `throw $this->errorResult()` - any other exceptions will be considered unexpected and wrapped in a generic error with a benign message which will be unhelpful to end users
 - Result messages and error messages must be ‘safe’ for end users/customers to read (not contain potentially sensitive information such as  credentials or references to code/classes/files etc) but should still be reasonably helpful. Furthermore for services which can be resold as whitelabelled platforms you must **not** expose the provider/platform name in result/error messages
 - Additional information or helpful metadata (e.g. raw API response data) should be returned in successful result debug or error data/debug
