@@ -905,8 +905,8 @@ class Provider extends SharedHosting implements ProviderInterface
             return $result_data;
         }
 
-        $data = ['http_code' => $http_code, 'result_data' => $result_data];
-        $debug = ['result_meta' => $result_meta];
+        $data = ['http_code' => $http_code, 'result_data' => $result_data, 'result_meta' => $result_meta];
+        $debug = [];
 
         if (empty($result_data)) {
             $debug['response_body'] = Str::limit($response->getPsr7()->getBody()->__toString(), 300);
