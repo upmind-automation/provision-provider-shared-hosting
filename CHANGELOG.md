@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## v6.0.1 - 2023-05-31
+
+- Update WHMv1 API error result data/debug
+
 ## v6.0.0 - 2023-04-21
 
 - Fix WHMv1 revokeReseller() return data
