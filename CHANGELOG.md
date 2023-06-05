@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.0.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.0.2) - 2023-06-05
+
+- Implement TwentyI getUsage() function
+
 ## [v6.0.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.0.1) - 2023-05-31
 
 - Update WHMv1 API error result data/debug
