@@ -12,7 +12,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  *
  * @property-read int|float|null $used Units used
  * @property-read int|float|null $limit Units limit, or null for unlimited
- * @property-read string $used_pc Percentage of units used, e.g. "50.5%"
+ * @property-read string|null $used_pc Percentage of units used, e.g. "50.5%", or null if unlimited
  */
 class UnitsConsumed extends DataSet
 {
@@ -31,7 +31,7 @@ class UnitsConsumed extends DataSet
     public function setUsed($used): self
     {
         $this->setValue('used', $used);
-        return $this;
+        return $this->calculateUsedPc();
     }
 
     /**
@@ -40,7 +40,7 @@ class UnitsConsumed extends DataSet
     public function setLimit($limit): self
     {
         $this->setValue('limit', $limit);
-        return $this;
+        return $this->calculateUsedPc();
     }
 
     /**
@@ -49,6 +49,22 @@ class UnitsConsumed extends DataSet
     public function setUsedPc($usedPc): self
     {
         $this->setValue('used_pc', $usedPc);
+        return $this;
+    }
+
+    /**
+     * Calculate and set used_pc string based on the used and limit values.
+     */
+    public function calculateUsedPc(): self
+    {
+        if ($this->get('limit') === null) {
+            $this->setUsedPc(null); // unlimited
+            return $this;
+        }
+
+        $this->setUsedPc(
+            round($this->get('used') / $this->get('limit') * 100, 1) . '%'
+        );
         return $this;
     }
 }
