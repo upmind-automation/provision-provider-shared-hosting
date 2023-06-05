@@ -299,7 +299,7 @@ class Api
         try {
             return $this->services->getWithFields(sprintf('/package/%s/web/limits', $hostingId));
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not get hosting package usage', [
+            return $this->handleException($e, 'Could not get hosting package limits', [
                 'hosting_id' => $hostingId,
             ]);
         }
