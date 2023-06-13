@@ -6,11 +6,13 @@ namespace Upmind\ProvisionProviders\SharedHosting\SolidCP;
 
 use SoapClient;
 use Carbon\Carbon;
+use stdClass;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
+use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePackageParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ChangePasswordParams;
@@ -47,6 +49,11 @@ class Provider extends Category implements ProviderInterface
             ->setDescription('SolidCP provider');
     }
 
+    public function getUsage(AccountUsername $params): AccountUsage
+    {
+        throw $this->errorResult('Operation not supported');
+    }
+
     /**
      * @inheritDoc
      */
@@ -58,7 +65,7 @@ class Provider extends Category implements ProviderInterface
             'password' => $params['password'],
             'roleId' => ($params['as_reseller']) ? 2 : 3,
             'firstName' => explode(" ", $params['customer_name'])[0],
-            'lastName' => explode(" ", $params['customer_name'])[1],
+            'lastName' => explode(" ", $params['customer_name'], 2)[1] ?? null,
             'email' => $params['email'],
             'htmlMail' => false,
             'sendAccountLetter' => false,
@@ -247,8 +254,8 @@ class Provider extends Category implements ProviderInterface
             // Execute the request and process the results
             $result = call_user_func(array($client, $method), $params);
 
-                if ($this->coniguration->debug) {
-                    $this->getLogger()->debug('SOAP Request: ' . $client->__getLastResquest());
+            if ($this->configuration->debug) {
+                $this->getLogger()->debug('SOAP Request: ' . $client->__getLastRequest());
                     $this->getLogger()->debug('SOAP Response: ' . $client->__getLastResponse());
                 }
             if($res_param)

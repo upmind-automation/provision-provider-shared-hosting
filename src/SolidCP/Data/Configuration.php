@@ -11,7 +11,9 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * SolidCP API credentials.
  *
  * @property-read string $hostname SolidCP server hostname
- * @property-read string $api_token API token
+ * @property-read string $port SolidCP API port
+ * @property-read string $username SolidCP API username
+ * @property-read string $password SolidCP API password
  * @property-read bool $debug Whether or not to log API requests and responses
  */
 class Configuration extends DataSet
