@@ -30,6 +30,8 @@ use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerOptionParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
+use Upmind\ProvisionProviders\SharedHosting\Data\UnitsConsumed;
+use Upmind\ProvisionProviders\SharedHosting\Data\UsageData;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Data\TwentyICredentials;
 
 /**
@@ -91,7 +93,29 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getUsage(AccountUsername $params): AccountUsage
     {
-        throw $this->errorResult('Operation not supported');
+        $usage = $this->api()->getPackageUsage($params->username);
+        $info = $this->api()->getPackageInfo($params->username);
+        $limits = $info->limits;
+
+        $websites = UnitsConsumed::create()
+            ->setUsed(count($info->names))
+            ->setLimit($limits->domains !== 'INF' ? $limits->domains : null);
+
+        $disk = UnitsConsumed::create()
+            ->setUsed($usage->DiskMb)
+            ->setLimit($limits->webspace !== 'INF' ? $limits->webspace : null);
+
+        $bandwidth = UnitsConsumed::create()
+            ->setUsed($usage->Bandwidth->MbIn + $usage->Bandwidth->MbOut)
+            ->setLimit($limits->bandwidth !== 'INF' ? $limits->bandwidth : null);
+
+        $usage = UsageData::create()
+            ->setWebsites($websites)
+            ->setDiskMb($disk)
+            ->setBandwidthMb($bandwidth);
+
+        return AccountUsage::create()
+            ->setUsageData($usage);
     }
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl

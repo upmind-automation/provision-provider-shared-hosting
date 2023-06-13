@@ -284,6 +284,50 @@ class Api
     }
 
     /**
+     * Returns hosting package limits for the given hosting id.
+     *
+     * @link https://jsapi.apiary.io/apis/20i/reference/packages/limits-web/retrieve-limits-for-a-web.html
+     *
+     * @param int|string $hostingId Hosting package id
+     *
+     * @throws ProvisionFunctionError If get info request fails
+     *
+     * @return object Raw api response data
+     */
+    public function getPackageLimits($hostingId): object
+    {
+        try {
+            return $this->services->getWithFields(sprintf('/package/%s/web/limits', $hostingId));
+        } catch (Throwable $e) {
+            return $this->handleException($e, 'Could not get hosting package limits', [
+                'hosting_id' => $hostingId,
+            ]);
+        }
+    }
+
+    /**
+     * Returns hosting package usage stats for the given hosting id.
+     *
+     * @link https://jsapi.apiary.io/apis/20i/reference/packages/web-usage-stats/retreive-web-stats.html
+     *
+     * @param int|string $hostingId Hosting package id
+     *
+     * @throws ProvisionFunctionError If get info request fails
+     *
+     * @return object Raw api response data
+     */
+    public function getPackageUsage($hostingId): object
+    {
+        try {
+            return $this->services->getWithFields(sprintf('/package/%s/web/usage', $hostingId));
+        } catch (Throwable $e) {
+            return $this->handleException($e, 'Could not get hosting package usage', [
+                'hosting_id' => $hostingId,
+            ]);
+        }
+    }
+
+    /**
      * Update the plan of an existing hosting package.
      *
      * @link https://jsapi.apiary.io/apis/20i/reference/reseller/package-update/update/delete-a-package.html
