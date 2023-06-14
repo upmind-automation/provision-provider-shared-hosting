@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.0.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.0.3) - 2023-06-14
+
+- Update 20i provider to fall back to finding package info by domain if username is not valid
+  - This fixes issues where orders imported from WHMCS have false usernames
+  - When a match is found by domain, return the hosting id as username to correct for future requests
+
 ## [v6.0.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.0.2) - 2023-06-05
 
 - Implement TwentyI getUsage() function
