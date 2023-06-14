@@ -7,6 +7,7 @@ namespace Upmind\ProvisionProviders\SharedHosting\TwentyI;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use stdClass;
 use Throwable;
 use TwentyI\API\Authentication;
 use TwentyI\API\HTTPException;
@@ -82,19 +83,19 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getInfo(AccountUsername $params): AccountInfo
     {
-        $info = $this->getAccountInfoData($params->username);
+        $infoResult = $this->getAccountInfoData($params->username, $params->domain);
 
         if ($params->customer_id) {
-            $info->setCustomerId($params->customer_id);
+            $infoResult->setCustomerId($params->customer_id);
         }
 
-        return $info;
+        return $infoResult;
     }
 
     public function getUsage(AccountUsername $params): AccountUsage
     {
-        $usage = $this->api()->getPackageUsage($params->username);
-        $info = $this->api()->getPackageInfo($params->username);
+        $info = $this->getPackageInfo($params->username, $params->domain);
+        $usage = $this->api()->getPackageUsage($info->username);
         $limits = $info->limits;
 
         $websites = UnitsConsumed::create()
@@ -120,9 +121,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        $hostingId = $params->username;
-
-        $info = $this->api()->getPackageInfo($hostingId);
+        $info = $this->getPackageInfo($params->username, $params->domain);
 
         $stackUser = Arr::first($info->stackUsers, function ($stackUser) use ($params) {
             return $params->customer_id && Str::start($params->customer_id, 'stack-user:') === $stackUser;
@@ -152,9 +151,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        $hostingId = $params->username;
-
-        $info = $this->api()->getPackageInfo($hostingId);
+        $info = $this->getPackageInfo($params->username, $params->domain ?? null);
 
         $stackUser = Arr::first($info->stackUsers, function ($stackUser) use ($params) {
             return $params->customer_id && Str::start($params->customer_id, 'stack-user:') === $stackUser;
@@ -171,10 +168,10 @@ class Provider extends SharedHosting implements ProviderInterface
 
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
-        $hostingId = $params->username;
         $planId = $params->package_name;
 
-        $hostingInfo = $this->api()->getPackageInfo($hostingId)->web; // throws error if hosting is deleted
+        $packageInfo = $this->getPackageInfo($params->username, $params->domain); // throws error if hosting is deleted
+        $hostingInfo = $packageInfo->web;
         $planInfo = $this->api()->getPlanInfo($planId); // throws error if plan not found
 
         if ($hostingInfo->platform !== $planInfo->platform) {
@@ -185,65 +182,59 @@ class Provider extends SharedHosting implements ProviderInterface
                 $planInfo->platform
             );
             return $this->errorResult($errorMessage, [
-                'hosting_id' => $hostingId,
+                'hosting_id' => $packageInfo->username,
                 'new_plan_id' => $planId,
             ]);
         }
 
-        $this->api()->changePackagePlan($hostingId, $planId);
+        $this->api()->changePackagePlan($packageInfo->username, $planId);
 
-        return $this->getAccountInfoData($params->username);
+        return $this->getAccountInfoData($packageInfo->username);
     }
 
     public function suspend(SuspendParams $params): AccountInfo
     {
-        $hostingId = $params->username;
-
-        $info = $this->getAccountInfoData($hostingId) // throws error if hosting is deleted
+        $infoResult = $this->getAccountInfoData($params->username, $params->domain) // throws error if hosting deleted
             ->setSuspendReason($params->reason);
 
-        if ($info->suspended) {
-            return $info->setMessage('Hosting package already suspended');
+        if ($infoResult->suspended) {
+            return $infoResult->setMessage('Hosting package already suspended');
         }
 
-        $this->api()->disablePackage($hostingId);
+        $this->api()->disablePackage($infoResult->username);
 
-        return $info->setMessage('Hosting package suspended')
+        return $infoResult->setMessage('Hosting package suspended')
             ->setSuspended(true);
     }
 
     public function unSuspend(AccountUsername $params): AccountInfo
     {
-        $hostingId = $params->username;
-
-        $info = $this->getAccountInfoData($hostingId) // throws error if hosting is deleted
+        $infoResult = $this->getAccountInfoData($params->username, $params->domain) // throws error if hosting deleted
             ->setSuspendReason(null);
 
-        if (!$info->suspended) {
-            return $info->setMessage('Hosting package already unsuspended');
+        if (!$infoResult->suspended) {
+            return $infoResult->setMessage('Hosting package already unsuspended');
         }
 
-        $this->api()->enablePackage($hostingId);
+        $this->api()->enablePackage($infoResult->username);
 
-        return $info->setMessage('Hosting package unsuspended')
+        return $infoResult->setMessage('Hosting package unsuspended')
             ->setSuspended(false);
     }
 
     public function terminate(AccountUsername $params): EmptyResult
     {
-        $hostingId = $params->username;
+        $infoResult = $this->getAccountInfoData($params->username, $params->domain); // throws error if already deleted
 
-        $this->getAccountInfoData($hostingId); // throws error if hosting already deleted
-
-        $this->api()->terminatePackage($hostingId);
+        $this->api()->terminatePackage($infoResult->username);
 
         return EmptyResult::create()
             ->setMessage('Hosting package deleted');
     }
 
-    protected function getAccountInfoData($hostingId): AccountInfo
+    protected function getAccountInfoData($hostingId, ?string $domain = null): AccountInfo
     {
-        $info = $this->api()->getPackageInfo($hostingId);
+        $info = $this->getPackageInfo($hostingId, $domain);
 
         $domain = $info->web->name;
         $ip = $info->web->info->ip4Address;
@@ -254,7 +245,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $reseller = false;
 
         return AccountInfo::create()
-            ->setUsername((string)$hostingId)
+            ->setUsername((string)$info->username)
             ->setDomain($domain)
             ->setReseller($reseller)
             ->setServerHostname($serverHost)
@@ -262,6 +253,28 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setSuspended($suspended)
             ->setSuspendReason($suspendReason)
             ->setIp($ip);
+    }
+
+    protected function getPackageInfo($hostingId, ?string $domain = null): stdClass
+    {
+        try {
+            $info = $this->api()->getPackageInfo($hostingId);
+            $info->username = $hostingId;
+
+            return $info;
+        } catch (Throwable $e) {
+            if ($domain && Str::contains($e->getMessage(), '(not found)')) {
+                try {
+                    $info = $this->api()->getPackageInfo($domain);
+                    $info->username = $info->id;
+                    return $info;
+                } catch (Throwable $e) {
+                    throw $e;
+                }
+            }
+
+            throw $e;
+        }
     }
 
     /**
