@@ -1,4 +1,4 @@
-# Upmind Provision Providers - Shared Hosting
+# [Upmind Provision Providers](https://github.com/upmind-automation) - Shared Hosting
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/upmind/provision-provider-shared-hosting.svg?style=flat-square)](https://packagist.org/packages/upmind/provision-provider-shared-hosting)
 
