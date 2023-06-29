@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.1) - 2023-06-29
+
+- Update upmind/enhance-sdk to v9.4.0
+
 ## [v6.0.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.0.3) - 2023-06-14
 
 - Update 20i provider to fall back to finding package info by domain if username is not valid
