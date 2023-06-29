@@ -170,7 +170,6 @@ class Provider extends SharedHosting implements ProviderInterface
                 'owner-id' => $customerId,
                 'ip_address' => $ip_address,
                 'htype' => 'vrt_hst'
-
             ];
             $hostingParams = [
                 'ftp_login' => $login,
@@ -301,7 +300,6 @@ class Provider extends SharedHosting implements ProviderInterface
                 'owner-id' => $customer->id,
                 'ip_address' => $ip_address,
                 'htype' => 'vrt_hst'
-
             ];
             $hostingParams = [
                 'ftp_login' => $login,

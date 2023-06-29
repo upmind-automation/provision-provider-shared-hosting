@@ -1,6 +1,6 @@
 <?php
 
-declare (strict_types = 1);
+declare (strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\WHMv1\Api;
 
@@ -26,7 +26,7 @@ class Response extends ApiResponse
     /**
      * Determine whether HTTP code is in the 200 range, and response body
      * indicates success.
-     * 
+     *
      * @return bool
      */
     public function isSuccess(): bool

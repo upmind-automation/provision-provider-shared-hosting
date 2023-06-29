@@ -1,6 +1,6 @@
 <?php
 
-declare (strict_types = 1);
+declare (strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\WHMv1\Api;
 
@@ -18,9 +18,9 @@ class Request extends ApiRequest
      * @param array $params Function parameters keyed by name
      */
     public function __construct(
-        ClientInterface $client, 
-        string $method = 'GET', 
-        string $uri = '', 
+        ClientInterface $client,
+        string $method = 'GET',
+        string $uri = '',
         array $params = [],
         array $requestOptions = []
     ) {
@@ -34,7 +34,9 @@ class Request extends ApiRequest
         }
 
         $this->promise = $client->requestAsync(
-            strtoupper($method), strtolower($uri), $options
+            strtoupper($method),
+            strtolower($uri),
+            $options
         )->then(function (Psr7Response $response) {
             return $this->response = new Response($response);
         });

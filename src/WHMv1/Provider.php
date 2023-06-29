@@ -359,7 +359,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $requestParams = compact('user', 'service');
 
         $response = $this->makeApiCall('POST', 'create_user_session', $requestParams);
-        $data =  $this->processResponse($response);
+        $data = $this->processResponse($response);
 
         $url = $data['url'];
 
