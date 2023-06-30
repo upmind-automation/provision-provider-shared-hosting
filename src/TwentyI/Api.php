@@ -470,7 +470,7 @@ class Api
 
         if ($e instanceof HTTPException) {
             $data['request_url'] = $e->fullURL;
-            $data['result_data'] = $e->decodedBody;
+            $data['response_data'] = $e->decodedBody;
         }
 
         if ($e instanceof ProvisionFunctionError) {
