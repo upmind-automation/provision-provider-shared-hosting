@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.1.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.1.1) - 2023-06-30
+
+- Update 20i TwentyI\\Api error handling; improve error message for 401 errors
+
 ## [v6.1.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.1.0) - 2023-06-29
 
 - Update upmind/enhance-sdk to v9.4.0
