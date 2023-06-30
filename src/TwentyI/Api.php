@@ -452,6 +452,10 @@ class Api
     {
         $errorMessage = $errorMessage ?? 'StackCP API request failed';
 
+        if ($this->exceptionIs401($e)) {
+            $errorMessage = 'API authentication error';
+        }
+
         if ($this->exceptionIs404($e)) {
             $errorMessage .= ' (not found)';
         }
@@ -489,8 +493,20 @@ class Api
     protected function shouldWrapException(Throwable $e): bool
     {
         return $e instanceof HTTPException
+            || $this->exceptionIs401($e)
             || $this->exceptionIs404($e)
+            || $this->exceptionIs409($e)
             || $this->exceptionIsTimeout($e);
+    }
+
+    /**
+     * Determine whether the given exception was thrown due to a 401 response
+     * from the stack cp api.
+     */
+    protected function exceptionIs401(Throwable $e): bool
+    {
+        return $e instanceof HTTPException
+            && preg_match('/(^|[^\d])401([^\d]|$)/', $e->getMessage());
     }
 
     /**
