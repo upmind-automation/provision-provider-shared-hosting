@@ -468,6 +468,11 @@ class Api
             $errorMessage .= ' (request timed out)';
         }
 
+        if ($e instanceof HTTPException) {
+            $data['request_url'] = $e->fullURL;
+            $data['result_data'] = $e->decodedBody;
+        }
+
         if ($e instanceof ProvisionFunctionError) {
             // merge any additional error data / debug data
             $data = array_merge($e->getData(), $data);
