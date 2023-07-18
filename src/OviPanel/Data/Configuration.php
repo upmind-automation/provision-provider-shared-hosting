@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Upmind\ProvisionProviders\SharedHosting\ovi\Data;
+namespace Upmind\ProvisionProviders\SharedHosting\OviPanel\Data;
 
 use Upmind\ProvisionBase\Provider\DataSet\DataSet;
 use Upmind\ProvisionBase\Provider\DataSet\Rules;
@@ -10,10 +10,14 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
 /**
  * Example API credentials.
  *
- * @property-read string $hostname Plesk ovi hostname
- * @property-read string $api_token API token
+ * @property-read string $ip IP
+ * @property-read string $adminusername Username
+ * @property-read string $adminpassword Password
+ * @property-read string $api_key Key
  * @property-read bool $debug Whether or not to log API requests and responses
  */
+
+
 class Configuration extends DataSet
 {
     public static function rules(): Rules
@@ -23,8 +27,8 @@ class Configuration extends DataSet
             'adminusername' => ['required', 'string'],
             'adminpassword' => ['required', 'string'],
             'api_key' => ['required', 'string'],
-           // 'api_token' => ['required', 'string'],
             'debug' => ['boolean'],
         ]);
     }
 }
+
