@@ -12,6 +12,7 @@ use Upmind\ProvisionProviders\SharedHosting\WHMv1\Provider as WHMv1;
 use Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Provider as PleskOnyxRPC;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Provider as TwentyI;
 use Upmind\ProvisionProviders\SharedHosting\Enhance\Provider as Enhance;
+use Upmind\ProvisionProviders\SharedHosting\InterWorx\Provider as InterWorx;
 
 class LaravelServiceProvider extends ProvisionServiceProvider
 {
@@ -26,5 +27,6 @@ class LaravelServiceProvider extends ProvisionServiceProvider
         $this->bindProvider('shared-hosting', 'plesk-onyx', PleskOnyxRPC::class);
         $this->bindProvider('shared-hosting', '20i', TwentyI::class);
         $this->bindProvider('shared-hosting', 'enhance', Enhance::class);
+        $this->bindProvider('shared-hosting', 'inter-worx', InterWorx::class);
     }
 }
