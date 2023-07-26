@@ -37,14 +37,14 @@ class Api
         return $this->client = $client;
     }
 
-    public function makeRequest(string $api_controller, string $action, array $input): ?array
+    public function makeRequest(string $controller, string $action, array $input): ?array
     {
         $key = array(
             'email' => $this->configuration->username,
             'password' => $this->configuration->password
         );
 
-        $response = $this->client()->route($key, $api_controller, $action, $input);
+        $response = $this->client()->route($key, $controller, $action, $input);
 
         if (empty($response)) {
             throw new RuntimeException('Empty api response');
@@ -170,21 +170,21 @@ class Api
 
     private function getSiteWorxAccount(string $domain)
     {
-        $api_controller = '/nodeworx/siteworx';
+        $apiController = '/nodeworx/siteworx';
         $action = 'querySiteworxAccountDetails';
         $input = array(
             'domain' => $domain
         );
 
-        return $this->makeRequest($api_controller, $action, $input)['payload'];
+        return $this->makeRequest($apiController, $action, $input)['payload'];
     }
 
     private function getResellerAccount(string $username): ?array
     {
-        $api_controller = '/nodeworx/reseller';
+        $apiController = '/nodeworx/reseller';
         $action = 'listResellers';
 
-        $response = $this->makeRequest($api_controller, $action, [])['payload'];
+        $response = $this->makeRequest($apiController, $action, [])['payload'];
 
         $result = Null;
 
@@ -219,13 +219,13 @@ class Api
 
     public function getDomainName(string $username): string
     {
-        $api_controller = '/nodeworx/siteworx';
+        $controller = '/nodeworx/siteworx';
         $action = 'querySiteworxAccounts';
         $input = array(
             'unixuser' => $username
         );
 
-        $response = $this->makeRequest($api_controller, $action, $input)['payload'];
+        $response = $this->makeRequest($controller, $action, $input)['payload'];
 
         return $response[0]['domain'];
     }
@@ -277,7 +277,7 @@ class Api
 
     public function suspendAccount(string $domain, ?string $reason): void
     {
-        $api_controller = '/nodeworx/siteworx';
+        $controller = '/nodeworx/siteworx';
         $action = 'suspend';
         $input = array(
             'domain' => $domain
@@ -287,34 +287,34 @@ class Api
             $input['message'] = $reason;
         }
 
-        $this->makeRequest($api_controller, $action, $input);
+        $this->makeRequest($controller, $action, $input);
     }
 
     public function unsuspendAccount(string $username): void
     {
-        $api_controller = '/nodeworx/siteworx';
+        $controller = '/nodeworx/siteworx';
         $action = 'unsuspendByUser';
         $input = array(
             'user' => $username
         );
 
-        $this->makeRequest($api_controller, $action, $input);
+        $this->makeRequest($controller, $action, $input);
     }
 
     public function deleteAccount(string $domain): void
     {
-        $api_controller = '/nodeworx/siteworx';
+        $controller = '/nodeworx/siteworx';
         $action = 'delete';
         $input = array(
             'domain' => $domain
         );
 
-        $this->makeRequest($api_controller, $action, $input);
+        $this->makeRequest($controller, $action, $input);
     }
 
     public function updatePassword(string $domain, string $password): void
     {
-        $api_controller = '/nodeworx/siteworx';
+        $controller = '/nodeworx/siteworx';
         $action = 'edit';
         $input = array(
             'domain' => $domain,
@@ -322,31 +322,31 @@ class Api
             'confirm_password' => $password,
         );
 
-        $this->makeRequest($api_controller, $action, $input);
+        $this->makeRequest($controller, $action, $input);
     }
 
     public function updatePackage(string $domain, string $package)
     {
-        $api_controller = '/nodeworx/siteworx';
+        $controller = '/nodeworx/siteworx';
         $action = 'edit';
         $input = array(
             'domain' => $domain,
             'packagetemplate' => $package,
         );
 
-        $this->makeRequest($api_controller, $action, $input);
+        $this->makeRequest($controller, $action, $input);
     }
 
     public function deleteReseller(string $username): void
     {
         $reseller = $this->getResellerAccount($username);
 
-        $api_controller = '/nodeworx/reseller';
+        $controller = '/nodeworx/reseller';
         $action = 'delete';
         $input = array(
             'reseller_id' => $reseller['reseller_id'],
         );
 
-        $this->makeRequest($api_controller, $action, $input);
+        $this->makeRequest($controller, $action, $input);
     }
 }
