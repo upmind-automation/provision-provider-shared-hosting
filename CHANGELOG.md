@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.1.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.1.3) - 2023-08-10
+
+- Update Enhance createCustomer() improve error message when customer email already exists
+
 ## [v6.1.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.1.2) - 2023-06-30
 
 - Update 20i TwentyI\\Api error handling; add request url and response data to error data
