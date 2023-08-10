@@ -657,11 +657,22 @@ class Provider extends Category implements ProviderInterface
             try {
                 $this->api()->orgs()->deleteOrg($customerId, 'false');
             } finally {
+                $errorMessage = 'Failed to create login for new customer';
+
+                $responseData = json_decode($e->getResponseBody() ?? '', true) ?: [];
+                if (!empty($responseData['code'])) {
+                    $errorMessage = sprintf('%s [%s]', $errorMessage, $responseData['code']);
+
+                    if ($responseData['code'] === 'already_exists') {
+                        $errorMessage = 'A customer with this email address already exists';
+                    }
+                }
+
                 throw $this->handleException(
                     $e,
                     ['new_customer_id' => $customerId, 'email' => $email],
                     [],
-                    'Failed to create login for new customer'
+                    $errorMessage
                 );
             }
         }
