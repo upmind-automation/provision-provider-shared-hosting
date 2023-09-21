@@ -26,7 +26,7 @@ use Upmind\ProvisionProviders\SharedHosting\Data\UsageData;
 use Upmind\ProvisionProviders\SharedHosting\InterWorx\Data\Configuration;
 
 /**
- * Example hosting provider template.
+ * InterWorx provision provider.
  */
 class Provider extends Category implements ProviderInterface
 {
@@ -324,6 +324,7 @@ class Provider extends Category implements ProviderInterface
             return $this->api;
         }
 
-        return $this->api ??= new Api($this->configuration);
+        $logger = $this->configuration->debug ? $this->getLogger() : null;
+        return $this->api = new Api($this->configuration, $logger);
     }
 }

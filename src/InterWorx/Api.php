@@ -21,13 +21,13 @@ use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 class Api
 {
     private Configuration $configuration;
-
+    private ?LoggerInterface $logger;
     private ?SoapClient $client;
 
-    public function __construct(Configuration $configuration, ?SoapClient $client = null)
+    public function __construct(Configuration $configuration, ?LoggerInterface $logger = null)
     {
         $this->configuration = $configuration;
-        $this->client = $client;
+        $this->logger = $logger;
     }
 
     protected function client(): SoapClient
@@ -36,9 +36,10 @@ class Api
             return $this->client;
         }
 
-        $client = new SoapClient("https://{$this->configuration->hostname}:{$this->configuration->port}/soap?wsdl");
-
-        return $this->client = $client;
+        $wsdl = "https://{$this->configuration->hostname}:{$this->configuration->port}/soap?wsdl";
+        return $this->client = new SoapClient($wsdl, [
+            'trace' => true,
+        ]);
     }
 
     public function makeRequest(string $controller, string $action, array $input): ?array
@@ -49,6 +50,8 @@ class Api
         ];
 
         $response = $this->client()->route($key, $controller, $action, $input);
+
+        $this->logLastRequest();
 
         if (empty($response)) {
             throw new RuntimeException('Empty api response');
@@ -352,5 +355,45 @@ class Api
         ];
 
         $this->makeRequest($controller, $action, $input);
+    }
+
+    /**
+     * Logs the last request and response if a logger is set.
+     */
+    protected function logLastRequest(): void
+    {
+        if ($this->logger) {
+            $this->logger->debug(sprintf(
+                "SOAP Request:\n%s\nSOAP Response:\n%s",
+                $this->formatLog($this->client()->__getLastRequest()),
+                $this->formatLog($this->client()->__getLastResponse())
+            ));
+        }
+    }
+
+    /**
+     * Format the given log message, masking the username and password.
+     *
+     * @param string|null $message
+     */
+    protected function formatLog($message): string
+    {
+        return str_replace(
+            array_map(
+                fn ($string) => htmlspecialchars($string, ENT_XML1, 'UTF-8'),
+                [$this->configuration->username, $this->configuration->password]
+            ),
+            ['[USERNAME]', '[PASSWORD]'],
+            trim(strval($message))
+        );
+    }
+
+    /**
+     * @return static
+     */
+    public function setLogger(?LoggerInterface $logger): self
+    {
+        $this->logger = $logger;
+        return $this;
     }
 }
