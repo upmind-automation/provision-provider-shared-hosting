@@ -87,7 +87,6 @@ class Provider extends Category implements ProviderInterface
             } else {
                 return $this->_getInfo($params->domain, false, 'Account created');
             }
-
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -125,7 +124,8 @@ class Provider extends Category implements ProviderInterface
     {
         try {
             if (isset($params->is_reseller) && boolval($params->is_reseller)) {
-                return $this->_getInfo($params->username,
+                return $this->_getInfo(
+                    $params->username,
                     true,
                     'Account info retrieved',
                 );
@@ -133,7 +133,8 @@ class Provider extends Category implements ProviderInterface
 
             $domain = $this->api()->getDomainName($params->username);
 
-            return $this->_getInfo($domain,
+            return $this->_getInfo(
+                $domain,
                 false,
                 'Account info retrieved',
             );
@@ -206,7 +207,8 @@ class Provider extends Category implements ProviderInterface
             return $this->_getInfo(
                 $domain,
                 false,
-                'Package changed');
+                'Package changed'
+            );
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -298,7 +300,6 @@ class Provider extends Category implements ProviderInterface
         throw $this->errorResult('Operation not supported');
     }
 
-
     /**
      * @throws ProvisionFunctionError
      * @throws Throwable
@@ -316,7 +317,6 @@ class Provider extends Category implements ProviderInterface
         // let the provision system handle this one
         throw $e;
     }
-
 
     protected function api(): Api
     {

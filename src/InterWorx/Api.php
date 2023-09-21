@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\InterWorx;
@@ -42,10 +43,10 @@ class Api
 
     public function makeRequest(string $controller, string $action, array $input): ?array
     {
-        $key = array(
+        $key = [
             'email' => $this->configuration->username,
             'password' => $this->configuration->password
-        );
+        ];
 
         $response = $this->client()->route($key, $controller, $action, $input);
 
@@ -117,12 +118,12 @@ class Api
     {
         $password = $params->password ?: Helper::generatePassword();
 
-        $input = array(
+        $input = [
             'email' => $params->email,
             'password' => $password,
             'confirm_password' => $password,
             'packagetemplate' => $params->package_name,
-        );
+        ];
 
         if ($asReseller) {
             $input['ipv4'] = $params->custom_ip;
@@ -159,7 +160,7 @@ class Api
         $suspended = $account['status'] === 'inactive';
         $suspendReason = $suspended ? (string)$account['inactive_msg'] : null;
 
-        return array(
+        return [
             'username' => $account['unixuser'],
             'domain' => $account['domain'],
             'reseller' => false,
@@ -168,16 +169,16 @@ class Api
             'suspended' => $suspended,
             'suspend_reason' => $suspendReason !== '' ? $suspendReason : null,
             'ip' => $account['ip'],
-        );
+        ];
     }
 
     private function getSiteWorxAccount(string $domain)
     {
         $apiController = '/nodeworx/siteworx';
         $action = 'querySiteworxAccountDetails';
-        $input = array(
+        $input = [
             'domain' => $domain
-        );
+        ];
 
         return $this->makeRequest($apiController, $action, $input)['payload'];
     }
@@ -189,7 +190,7 @@ class Api
 
         $response = $this->makeRequest($apiController, $action, [])['payload'];
 
-        $result = Null;
+        $result = null;
 
         foreach ($response as $reseller) {
             $reseller = (array)$reseller;
@@ -211,22 +212,22 @@ class Api
     {
         $reseller = $this->getResellerAccount($username);
 
-        return array(
+        return [
             'username' => $reseller['nickname'],
             'server_hostname' => $this->configuration->hostname,
             'package_name' => '-',
             'reseller' => true,
             'suspended' => false,
-        );
+        ];
     }
 
     public function getDomainName(string $username): string
     {
         $controller = '/nodeworx/siteworx';
         $action = 'querySiteworxAccounts';
-        $input = array(
+        $input = [
             'unixuser' => $username
-        );
+        ];
 
         $response = $this->makeRequest($controller, $action, $input)['payload'];
 
@@ -282,9 +283,9 @@ class Api
     {
         $controller = '/nodeworx/siteworx';
         $action = 'suspend';
-        $input = array(
+        $input = [
             'domain' => $domain
-        );
+        ];
 
         if ($reason) {
             $input['message'] = $reason;
@@ -297,9 +298,9 @@ class Api
     {
         $controller = '/nodeworx/siteworx';
         $action = 'unsuspendByUser';
-        $input = array(
+        $input = [
             'user' => $username
-        );
+        ];
 
         $this->makeRequest($controller, $action, $input);
     }
@@ -308,9 +309,9 @@ class Api
     {
         $controller = '/nodeworx/siteworx';
         $action = 'delete';
-        $input = array(
+        $input = [
             'domain' => $domain
-        );
+        ];
 
         $this->makeRequest($controller, $action, $input);
     }
@@ -319,11 +320,11 @@ class Api
     {
         $controller = '/nodeworx/siteworx';
         $action = 'edit';
-        $input = array(
+        $input = [
             'domain' => $domain,
             'password' => $password,
             'confirm_password' => $password,
-        );
+        ];
 
         $this->makeRequest($controller, $action, $input);
     }
@@ -332,10 +333,10 @@ class Api
     {
         $controller = '/nodeworx/siteworx';
         $action = 'edit';
-        $input = array(
+        $input = [
             'domain' => $domain,
             'packagetemplate' => $package,
-        );
+        ];
 
         $this->makeRequest($controller, $action, $input);
     }
@@ -346,9 +347,9 @@ class Api
 
         $controller = '/nodeworx/reseller';
         $action = 'delete';
-        $input = array(
+        $input = [
             'reseller_id' => $reseller['reseller_id'],
-        );
+        ];
 
         $this->makeRequest($controller, $action, $input);
     }
