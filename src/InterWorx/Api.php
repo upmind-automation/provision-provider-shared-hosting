@@ -21,9 +21,12 @@ class Api
 {
     private Configuration $configuration;
 
-    public function __construct(Configuration $configuration)
+    private ?SoapClient $client;
+
+    public function __construct(Configuration $configuration, ?SoapClient $client = null)
     {
         $this->configuration = $configuration;
+        $this->client = $client;
     }
 
     protected function client(): SoapClient

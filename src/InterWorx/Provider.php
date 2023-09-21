@@ -6,6 +6,7 @@ namespace Upmind\ProvisionProviders\SharedHosting\InterWorx;
 
 use GuzzleHttp\Client;
 use Throwable;
+use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
@@ -159,7 +160,7 @@ class Provider extends Category implements ProviderInterface
                 $domain = $params->domain;
             }
 
-            $usage = $this->api()->getAccountUsage($domain,);
+            $usage = $this->api()->getAccountUsage($domain);
 
             return AccountUsage::create()
                 ->setUsageData($usage);
@@ -262,7 +263,7 @@ class Provider extends Category implements ProviderInterface
     {
         try {
             if (isset($params->is_reseller) && boolval($params->is_reseller)) {
-                $this->api()->deleteReseller($params->username,);
+                $this->api()->deleteReseller($params->username);
 
                 return $this->emptyResult('Account deleted');
             }
