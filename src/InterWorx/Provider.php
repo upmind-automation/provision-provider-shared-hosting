@@ -69,10 +69,6 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        if (!$params->custom_ip) {
-            throw $this->errorResult('Domain IP is required');
-        }
-
         $username = $params->username ?? $this->generateUsername($params->domain);
 
         try {

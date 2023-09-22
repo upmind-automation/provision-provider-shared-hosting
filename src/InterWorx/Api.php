@@ -42,7 +42,7 @@ class Api
         ]);
     }
 
-    public function makeRequest(string $controller, string $action, array $input): ?array
+    public function makeRequest(string $controller, string $action, array $input = []): ?array
     {
         $key = [
             'email' => $this->configuration->username,
@@ -119,9 +119,12 @@ class Api
 
     public function createAccount(CreateParams $params, string $username, bool $asReseller): void
     {
+        $ipAddress = $params->custom_ip ?: $this->getFreeIp();
+
         $password = $params->password ?: Helper::generatePassword();
 
         $input = [
+            'nickname' => $params->customer_name ?: $params->email,
             'email' => $params->email,
             'password' => $password,
             'confirm_password' => $password,
@@ -129,14 +132,13 @@ class Api
         ];
 
         if ($asReseller) {
-            $input['ipv4'] = $params->custom_ip;
-            $input['nickname'] = $username;
+            $input['ipv4'] = $ipAddress;
             $input['status'] = 'active';
 
             $this->createResellerAccount($input);
         } else {
             $input['master_domain'] = $params->domain;
-            $input['master_domain_ipv4'] = $params->custom_ip;
+            $input['master_domain_ipv4'] = $ipAddress;
             $input['uniqname'] = $username;
 
             $this->createSiteworxAccount($input);
@@ -151,6 +153,13 @@ class Api
     private function createSiteworxAccount(array $input): void
     {
         $this->makeRequest('/nodeworx/siteworx', 'add', $input);
+    }
+
+    private function getFreeIp(): string
+    {
+        $result = $this->makeRequest('/nodeworx/siteworx', 'listFreeIps');
+
+        return Arr::first(Arr::first($result['payload']));
     }
 
     /**
