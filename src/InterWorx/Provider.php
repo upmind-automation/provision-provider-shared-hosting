@@ -175,7 +175,18 @@ class Provider extends Category implements ProviderInterface
      */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        throw $this->errorResult('Operation not supported');
+        $url = sprintf(
+            'https://%s:%s/%s/',
+            $this->configuration->hostname,
+            $this->configuration->port,
+            $params->is_reseller ? 'nodeworx' : 'siteworx'
+        );
+
+        if (!$params->is_reseller) {
+            $url .= '?domain=' . urlencode((string)$params->domain);
+        }
+
+        return LoginUrl::create()->setLoginUrl($url);
     }
 
     /**
