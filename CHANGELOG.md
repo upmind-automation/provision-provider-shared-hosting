@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.2.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.2.0) - 2023-09-22
+
+- Add InterWorx provider
+
 ## [v6.1.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.1.3) - 2023-08-10
 
 - Update Enhance createCustomer() improve error message when customer email already exists
