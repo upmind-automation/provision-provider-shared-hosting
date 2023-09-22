@@ -53,7 +53,7 @@ class Provider extends Category implements ProviderInterface
         return AboutData::create()
             ->setName('InterWorx')
             ->setDescription('Create and manage InterWorx accounts and resellers using the InterWorx API')
-            ->setLogoUrl('https://api.upmind.io/images/logos/provision/interworx-logo@2x.png');
+            ->setLogoUrl('https://api.upmind.io/images/logos/provision/interworx-logo.png');
     }
 
     /**
