@@ -710,16 +710,9 @@ class Provider extends Category implements ProviderInterface
             ->setSubscriptionId($subscriptionId)
             ->setDomain($domain);
 
-        $websiteId = $this->api()->websites()
+        return $this->api()->websites()
             ->createWebsite($customerId, $newWebsite)
             ->getId();
-
-        $updateWebsite = (new UpdateWebsite())
-            ->setPhpVersion(PhpVersion::PHP74);
-
-        $this->api()->websites()->updateWebsite($customerId, $websiteId, $updateWebsite);
-
-        return $websiteId;
     }
 
     protected function findPlan(string $packageName): Plan
