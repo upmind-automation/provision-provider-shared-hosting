@@ -41,6 +41,7 @@ The following providers are currently implemented:
   - [20i](https://www.20i.com/reseller-hosting)
   - [Enhance](https://enhance.com/)
   - [InterWorx](https://appendix.interworx.com/current/api/index.html)
+  - [SolidCP](https://solidcp.com/kb/)
 
 ## Functions
 
@@ -71,6 +72,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
  - [Harry Lewis](https://github.com/uphlewis)
  - [Nikolai Arsov](https://github.com/nikiarsov777)
  - [Codeline](https://github.com/CodelineNL)
+ - [Nikolay Bogdanov](https://github.com/nikolay-mocha)
  - [All Contributors](../../contributors)
 
 ## License

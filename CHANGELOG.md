@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.3.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.3.0) - 2023-10-05
+
+- Implement SolidCP provider
+
 ## [v6.2.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.2.1) - 2023-09-29
 
 - Remove Enhance website PHP version update API call
