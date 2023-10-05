@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\SolidCP;
 
-use SoapClient;
-use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use stdClass;
+use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
@@ -29,10 +29,12 @@ use Upmind\ProvisionProviders\SharedHosting\SolidCP\Data\Configuration;
  */
 class Provider extends Category implements ProviderInterface
 {
+    protected const ROLE_ADMIN = 1;
+    protected const ROLE_RESELLER = 2;
+    protected const ROLE_USER = 3;
+
     protected Configuration $configuration;
-    protected $client;
-    protected $clientInfo;
-    protected $caching = false;
+    protected Api $api;
 
     public function __construct(Configuration $configuration)
     {
@@ -59,20 +61,25 @@ class Provider extends Category implements ProviderInterface
      */
     public function create(CreateParams $params): AccountInfo
     {
+        $username = $params->username ?? $this->generateUsername($params->domain);
+        $name = $params->customer_name ?? explode('@', $params->email)[0];
+
+        $plan = $this->findPlan($params->package_name);
+
         $client_params = [
-            'parentPackageId' => 1,
-            'username' => $params['username'],
-            'password' => $params['password'],
-            'roleId' => ($params['as_reseller']) ? 2 : 3,
-            'firstName' => explode(" ", $params['customer_name'])[0],
-            'lastName' => explode(" ", $params['customer_name'], 2)[1] ?? null,
-            'email' => $params['email'],
+            'parentPackageId' => $this->configuration->parent_space_id ?? 1,
+            'username' => $username,
+            'password' => $params->password ?? Helper::generateStrictPassword(15, true, true, false),
+            'roleId' => $params->as_reseller ? self::ROLE_RESELLER : self::ROLE_USER,
+            'firstName' => explode(" ", $name)[0],
+            'lastName' => explode(" ", $name, 2)[1] ?? null,
+            'email' => $params->email,
             'htmlMail' => false,
             'sendAccountLetter' => false,
             'createPackage' => true,
-            'planId' => $params['package_name'],
+            'planId' => $plan->PlanId,
             'sendPackageLetter' => false,
-            'domainName' => $params['domain'],
+            'domainName' => $params->domain,
             'tempDomain' => false,
             'createWebSite' => true,
             'createFtpAccount' => false,
@@ -81,9 +88,9 @@ class Provider extends Category implements ProviderInterface
             'createZoneRecord' => true
         ];
 
-        $this->apiCall('Packages', 'CreateUserWizard', $client_params,'CreateUserWizardResult');
+        $this->api()->execute('Packages', 'CreateUserWizard', $client_params, 'CreateUserWizardResult');
 
-        return $this->getInfo(AccountUsername::create(['username' => $params['username']]))->setMessage('Account created successfully');
+        return $this->getInfoResult($username, $params->domain)->setMessage('Account created successfully');
     }
 
     /**
@@ -91,62 +98,33 @@ class Provider extends Category implements ProviderInterface
      */
     public function getInfo(AccountUsername $params): AccountInfo
     {
-
-        $result = $this->getInfoByUsername($params['username']);
-        $package = $this->getPackage($params['username']);
-        $this->getLogger()->debug('error', (array)$package);
-        return AccountInfo::create(
-            [
-                'customer_id' => (string) $result->UserId,
-                'username' => $params['username'],
-                'domain' => $params['domain'],
-                'reseller' => ($result->RoleId == 2) ? true : false,
-                'server_hostname' => $this->configuration->hostname,
-                'package_name' => (string) isset($package->PackageName) ? $package->PackageName : '',
-                'suspended' => ($result->Status == 'Active') ? 0 : 1,
-                'suspend_reason' => null,
-                'ip' => null,
-                'nameservers' => null,
-            ]
-        );
-
+        return $this->getInfoResult($params->username, $params->domain);
     }
+
     /**
      * @inheritDoc
      */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
-        return LoginUrl::create()
-                ->setMessage('Showing login url')
-                ->setLoginUrl('');
-    }
-    public function getInfoByUsername($username): stdClass
-    {
-        $client_params = ['username' => $username];
-        $result = $this->apiCall('Users', 'GetUserByUsername', $client_params);
-
-        if(!(array)$result) {
-            throw $this->errorResult($this->getFriendlyError('-101'));
+        $portalUrl = $this->configuration->portal_url;
+        if (!array_key_exists('scheme', parse_url($portalUrl))) {
+            $portalUrl = 'https://' . $portalUrl;
         }
 
-        return $result->GetUserByUsernameResult;
-    }
-    public function getPackage($username): Object
-    {
-        $userId = $this->getInfoByUsername($params['username'])->UserId;
-        $client_params = ['username' => $username, 'userId' => $userId ];
-        $result = $this->apiCall('Packages', 'GetMyPackages', $client_params,'GetMyPackagesResult')->PackageInfo;
+        $userId = $this->getUserByUsername($params->username)->UserId;
 
-        return $result;
+        return LoginUrl::create()
+            ->setLoginUrl($portalUrl . '/Default.aspx?pid=Home&UserID=' . $userId);
     }
+
     /**
      * @inheritDoc
      */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        $userId = $this->getInfoByUsername($params['username'])->UserId;
-        $client_params = ['username' => $params['username'], 'password' => $params['password'], 'userId' => $userId ];
-        $this->apiCall('Users', 'ChangeUserPassword', $client_params,'ChangeUserPasswordResult');
+        $userId = $this->getUserByUsername($params->username)->UserId;
+        $client_params = ['username' => $params->username, 'password' => $params->password, 'userId' => $userId];
+        $this->api()->execute('Users', 'ChangeUserPassword', $client_params, 'ChangeUserPasswordResult');
 
         return $this->emptyResult('Password changed');
     }
@@ -156,139 +134,203 @@ class Provider extends Category implements ProviderInterface
      */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
-        $package = $this->getPackage($params['username']);
-        $client_params = [
-                          'packageId' => $package->PackageId,
-                          'statusId' => $package->StatusId,
-                          'planId' => $params['package_name'],
-                          'purchaseDate' => $package->PurchaseDate,
-                          'packageName' => $params['package_name'],
-                          'packageComments' => isset($package->packageComments) ? $package->packageComments : ''
-                         ];
-        $this->apiCall('Packages', 'UpdatePackageLiteral', $client_params,'UpdatePackageLiteralResult');
+        $package = $this->getPackagesByUsername($params->username);
 
-        return $this->getInfo(AccountUsername::create(['username' => $params['username']]))->setMessage('Package updated');
+        $client_params = [
+            'packageId' => $package->PackageId,
+            'statusId' => $package->StatusId,
+            'planId' => $params->package_name,
+            'purchaseDate' => $package->PurchaseDate,
+            'packageName' => $params->package_name,
+            'packageComments' => isset($package->packageComments) ? $package->packageComments : ''
+        ];
+        $this->api()->execute('Packages', 'UpdatePackageLiteral', $client_params, 'UpdatePackageLiteralResult');
+
+        return $this->getInfoResult($params->username, $params->domain)
+            ->setMessage('Package updated');
     }
     /**
      * @inheritDoc
      */
     public function suspend(SuspendParams $params): AccountInfo
     {
-        $userId = $this->getInfoByUsername($params['username'])->UserId;
-        $client_params = ['username' => $params['username'], 'status' => 'Suspended', 'userId' => $userId ];
-        $this->apiCall('Users', 'ChangeUserStatus', $client_params,'ChangeUserStatusResult');
+        $userId = $this->getUserByUsername($params->username)->UserId;
+        $client_params = ['username' => $params->username, 'status' => 'Suspended', 'userId' => $userId];
+        $this->api()->execute('Users', 'ChangeUserStatus', $client_params, 'ChangeUserStatusResult');
 
-        return $this->getInfo(AccountUsername::create(['username' => $username]))->setMessage('Account suspended');
+        return $this->getInfoResult($params->username, $params->domain)
+            ->setSuspendReason($params->reason)
+            ->setMessage('Account suspended');
     }
     /**
      * @inheritDoc
      */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
-        $userId = $this->getInfoByUsername($params['username'])->UserId;
-        $client_params = ['username' => $params['username'], 'status' => 'Active', 'userId' => $userId ];
-        $this->apiCall('Users', 'ChangeUserStatus', $client_params,'ChangeUserStatusResult');
+        $userId = $this->getUserByUsername($params->username)->UserId;
+        $client_params = ['username' => $params->username, 'status' => 'Active', 'userId' => $userId];
+        $this->api()->execute('Users', 'ChangeUserStatus', $client_params, 'ChangeUserStatusResult');
 
-        return $this->getInfo(AccountUsername::create(['username' => $username]))->setMessage('Account is now Active');
+        return $this->getInfoResult($params->username, $params->domain)
+            ->setMessage('Account unsuspended');
     }
     /**
      * @inheritDoc
      */
     public function terminate(AccountUsername $params): EmptyResult
     {
-        $userId = $this->getInfoByUsername($params['username'])->UserId;
-        $client_params = [ 'username' => $params['username'], 'userId' => $userId ];
-        $result = $this->apiCall('Users', 'DeleteUser', $client_params,'DeleteUserResult');
-        if($result < 0) {
-            throw $this->errorResult($this->getFriendlyError($result));
-        }
+        $userId = $this->getUserByUsername($params->username)->UserId;
+        $client_params = ['username' => $params->username, 'userId' => $userId];
+        $result = $this->api()->execute('Users', 'DeleteUser', $client_params, 'DeleteUserResult');
 
         return $this->emptyResult('User has been deleted');
     }
+
     /**
      * @inheritDoc
      */
-    public function changeReseller($username, $roleid, $message): ResellerPrivileges
-    {
-        $client_params = $this->getInfoByUsername($username);
-        $client_params->RoleId = $roleid;
-        $client_params->Role = ($roleid == '2') ? 'Reseller' : 'User';
-
-        $this->apiCall('Users', 'UpdateUser', ['user' => $client_params],'UpdateUserResult');
-
-        return ResellerPrivileges::create()
-            ->setMessage($message)
-            ->setReseller(($roleid == '2') ? true : false);
-    }
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        return $this->changeReseller($params['username'], '2', 'Reseller privileges granted');
+        return $this->changeReseller($params->username, self::ROLE_RESELLER, 'Reseller privileges granted');
     }
+
     /**
      * @inheritDoc
      */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        return $this->changeReseller($params['username'], '3', 'Reseller privileges revoked');
+        return $this->changeReseller($params->username, self::ROLE_USER, 'Reseller privileges revoked');
     }
 
     /**
-     * Get a SOAP
+     * @param int|string $planId
      */
-    protected function apiCall($service, $method, $params,$res_param = null)
+    protected function findPlan($planId): stdClass
     {
-        $serverPort = $this->configuration->port ?: 9002;
-        $host = "http://{$this->configuration->hostname}:{$serverPort}/es{$service}.asmx?WSDL";
-
-        try {
-            // Create the SoapClient
-            $client = new SoapClient(
-                $host,
-                [
-                                                'login'       => $this->configuration->username,
-                                                'password'    => $this->configuration->password,
-                                                'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
-                                                'cache_wsdl'  => ($this->caching) ? 1 : 0
-                                            ]
-            );
-            // Execute the request and process the results
-            $result = call_user_func(array($client, $method), $params);
-
-            if ($this->configuration->debug) {
-                $this->getLogger()->debug('SOAP Request: ' . $client->__getLastRequest());
-                    $this->getLogger()->debug('SOAP Response: ' . $client->__getLastResponse());
-                }
-            if($res_param)
-                $result = $result->$res_param;
-            return $result;
-        } catch (\SoapFault $e) {
-            throw $this->errorResult("SOAP Fault: (Code: {$e->getCode()}, Message: {$e->getMessage()})");
-        } catch (\Exception | \ErrorException $e) {
-            throw $this->errorResult("General Fault: (Code: {$e->getCode()}, Message: {$e->getMessage()})",$e);
+        if (!is_numeric($planId)) {
+            throw $this->errorResult('Package identifier must be a numeric plan ID');
         }
+
+        $plan = $this->api()->execute('Packages', 'GetHostingPlan', ['planId' => $planId], 'GetHostingPlanResult');
+
+        if (empty((array)$plan)) {
+            throw $this->errorResult('Plan not found');
+        }
+
+        return $plan;
     }
-    public static function getFriendlyError($code)
-    {
-        $errors = [
-                            -100  => 'Username not available, already in use',
-                            -101  => 'Username not found, invalid username',
-                            -102  => 'User\'s account has child accounts',
-                            -300  => 'Hosting package could not be found',
-                            -301  => 'Hosting package has child hosting spaces',
-                            -501  => 'The sub-domain belongs to an existing hosting space that does not allow sub-domains to be created',
-                            -502  => 'The domain or sub-domain exists in another hosting space / user account',
-                            -511  => 'Preview Domain is enabled, but not configured',
-                            -601  => 'The website already exists on the target hosting space or server',
-                            -700  => 'The email domain already exists on the target hosting space or server',
-                            -1100 => 'User already exists',
-                            0     => 'Success'
-                            ];
 
-        // Find the error and return it, else a general error will do!
-        if (array_key_exists($code, $errors)) {
-            return $errors[$code];
-        } else {
-            return "An unknown error occured (Code: {$code}).";
+    protected function getInfoResult(string $username, ?string $domainName = null): AccountInfo
+    {
+        $result = $this->getUserByUsername($username);
+        $package = $this->getPackagesByUserId($result->UserId);
+
+        $domains = $this->getDomainsByPackageId($package->PackageId);
+        $domain = Arr::first($domains, function ($domain) use ($domainName) {
+            return (is_null($domainName) || $domain->DomainName === $domainName)
+                && !empty($domain->ZoneItemId);
+        });
+        if (isset($domain->ZoneItemId)) {
+            if ($zoneRecords = $this->getDnsZoneRecords($domain->DomainId)) {
+                $ip = Arr::first($zoneRecords, fn ($record) => $record->RecordType)->RecordData ?? null;
+                $nameservers = collect($zoneRecords)
+                    ->filter(fn ($record) => $record->RecordType === 'NS')
+                    ->map(fn ($record) => $record->RecordData)
+                    ->toArray();
+            }
         }
+
+        return AccountInfo::create([
+            // 'customer_id' => (string) $result->UserId, // not used in subsequent calls / orders, so not needed
+            'username' => $username,
+            'domain' => $domain->DomainName ?? $domainName,
+            'reseller' => $result->RoleId === self::ROLE_RESELLER,
+            'server_hostname' => $this->configuration->portal_url,
+            'package_name' => isset($package->PackageName) ? $package->PackageName : '',
+            'suspended' => $result->Status === 'Suspended',
+            'suspend_reason' => null,
+            'ip' => $ip ?? null,
+            'nameservers' => $nameservers ?? null,
+        ]);
+    }
+
+    /**
+     * Generate a random username from the given domain name.
+     */
+    protected function generateUsername(string $domain): string
+    {
+        $username = preg_replace('/[^a-z0-9]/i', '', $domain);
+        $username = substr($username, 0, 8);
+
+        return $username . str_pad((string)random_int(1, 99), 2, '0', STR_PAD_LEFT);
+    }
+
+    protected function getUserByUsername(string $username): stdClass
+    {
+        $client_params = ['username' => $username];
+        $result = $this->api()->execute('Users', 'GetUserByUsername', $client_params);
+
+        if (empty((array)$result)) {
+            throw $this->errorResult(Api::getFriendlyError('-101'));
+        }
+
+        return $result->GetUserByUsernameResult;
+    }
+
+    protected function getPackagesByUsername(string $username): stdClass
+    {
+        return $this->getPackagesByUserId((int)$this->getUserByUsername($username)->UserId);
+    }
+
+    protected function getPackagesByUserId(int $userId): stdClass
+    {
+        $client_params = ['userId' => $userId];
+        $result = $this->api()->execute('Packages', 'GetMyPackages', $client_params, 'GetMyPackagesResult');
+
+        if (empty((array)$result->PackageInfo)) {
+            throw $this->errorResult(Api::getFriendlyError('-300'));
+        }
+
+        return $result->PackageInfo;
+    }
+
+    /**
+     * @return stdClass[]
+     */
+    protected function getDomainsByPackageId(int $packageId): array
+    {
+        return $this->api()
+            ->execute('Servers', 'GetDomains', ['packageId' => $packageId], 'GetDomainsResponse')
+            ->GetDomainsResult
+            ->DomainInfo ?? [];
+    }
+
+    /**
+     * @return stdClass[]
+     */
+    protected function getDnsZoneRecords(int $domainId): array
+    {
+        return $this->api()
+            ->execute('Servers', 'GetDnsZoneRecords', ['domainId' => $domainId], 'GetDnsZoneRecordsResponse')
+            ->GetDnsZoneRecordsResult
+            ->DnsRecord ?? [];
+    }
+
+    protected function changeReseller(string $username, int $roleId, string $message): ResellerPrivileges
+    {
+        $client_params = $this->getUserByUsername($username);
+        $client_params->RoleId = $roleId;
+        $client_params->Role = ($roleId == self::ROLE_RESELLER) ? 'Reseller' : 'User';
+
+        $this->api()->execute('Users', 'UpdateUser', ['user' => $client_params], 'UpdateUserResult');
+
+        return ResellerPrivileges::create()
+            ->setMessage($message)
+            ->setReseller($roleId === self::ROLE_RESELLER);
+    }
+
+    protected function api(): Api
+    {
+        return $this->api ??= new Api($this->configuration, $this->getLogger((bool)$this->configuration->debug));
     }
 }
