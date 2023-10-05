@@ -48,7 +48,8 @@ class Provider extends Category implements ProviderInterface
     {
         return AboutData::create()
             ->setName('SolidCP')
-            ->setDescription('SolidCP provider');
+            ->setDescription('Create and manage windows shared hosting users and resellers with SolidCP')
+            ->setLogoUrl('https://api.upmind.io/images/logos/provision/solidcp-logo.png');
     }
 
     public function getUsage(AccountUsername $params): AccountUsage
