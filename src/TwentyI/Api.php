@@ -8,10 +8,10 @@ use ErrorException;
 use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 use Throwable;
-use TwentyI\API\Authentication;
 use TwentyI\API\CurlException;
 use TwentyI\API\HTTPException;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
+use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Authentication;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Services;
 
 /**
@@ -35,6 +35,7 @@ class Api
     public function __construct(string $generalApiKey, ?LoggerInterface $logger = null)
     {
         $this->auth = new Authentication($generalApiKey);
+        $this->auth->setLogger($logger);
         $this->services = new Services($generalApiKey);
         $this->services->setLogger($logger);
     }
