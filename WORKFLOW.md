@@ -20,7 +20,7 @@ Follow the below steps to create a new provider, using Plesk as an example:
 
 1. Install the [Upmind Provision Workbench](https://github.com/upmind-automation/provision-workbench#readme)
 2. Fork [this repository](https://github.com/upmind-automation/provision-provider-shared-hosting)
-3. Clone your fork into the `local/` directory where you have installed the provision workbench and run `composer install upmind/provision-provider-shared-hosting:@dev` - it will install from your fork in local/
+3. Clone your fork into the `local/` directory where you have installed the provision workbench and run `composer require upmind/provision-provider-shared-hosting:@dev` - it will install from your fork in local/
 4. In your fork of upmind/provision-provider-shared-hosting copy the `src/Example` directory to create `src/Plesk` and update the namespace on files under `src/Plesk`
 5. Update the sample Configuration class for Plesk API credentials (hostname, username, api_key, sandbox, debug etc)
 6. Bind your new provider to the provision registry in `src/LaravelServiceProvider.php`
