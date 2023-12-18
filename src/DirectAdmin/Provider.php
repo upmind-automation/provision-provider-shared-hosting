@@ -67,17 +67,15 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        if (!$params->custom_ip) {
-            throw $this->errorResult('Domain IP is required');
-        }
-
+        $customIp = !empty($createParams->custom_ip) ? $createParams->custom_ip : $this->freeIp();
         $username = $params->username ?? $this->generateUsername($params->domain);
 
         try {
             $this->api()->createAccount(
                 $params,
                 $username,
-                $asReseller
+                $asReseller,
+                $customIp
             );
 
             if ($asReseller) {
@@ -292,5 +290,16 @@ class Provider extends Category implements ProviderInterface
         ]);
 
         return $this->api = new Api($client, $this->configuration);
+    }
+
+    protected function freeIp()
+    {
+        $ip = $this->api()->freeIpList();
+
+        if (!empty($ip)) {
+            return $ip;
+        }
+
+        throw $this->errorResult('Domain IP is required, no free ips found');
     }
 }

@@ -23,6 +23,8 @@ class Api
     private Configuration $configuration;
     private const METHOD_POST = 'POST';
     private const METHOD_GET = 'GET';
+    private const COMMAND_FREE_IPS = '/CMD_API_SHOW_RESELLER_IPS';
+    private const STATUS_FREE = 'free';
 
     public function __construct(Client $client, Configuration $configuration)
     {
@@ -80,7 +82,7 @@ class Api
         return $parsedResult;
     }
 
-    public function createAccount(CreateParams $params, string $username, bool $asReseller): void
+    public function createAccount(CreateParams $params, string $username, bool $asReseller, string $customIp): void
     {
         $password = $params->password ?: Helper::generatePassword();
 
@@ -99,7 +101,7 @@ class Api
             'passwd2' => $password,
             'domain' => $params->domain,
             'package' => $params->package_name,
-            'ip' => $params->custom_ip,
+            'ip' => $customIp
         );
 
         $this->makeRequest($command, null, $query, self::METHOD_POST);
@@ -248,5 +250,19 @@ class Api
         $response = $this->makeRequest($command, $query, null, 'POST', $credentials);
 
         return $response['result'];
+    }
+
+    public function freeIpList(): string
+    {
+        $ipList = $this->makeRequest(self::COMMAND_FREE_IPS, null, null, 'GET');
+
+        foreach($ipList as $ip) {
+            $ipInfo = $this->makeRequest(self::COMMAND_FREE_IPS, ['ip' => $ip], null, 'GET');
+            if (!empty($ipInfo['status']) && $ipInfo['status'] === self::STATUS_FREE) {
+                return $ip;
+            }
+        }
+
+        return '';
     }
 }
