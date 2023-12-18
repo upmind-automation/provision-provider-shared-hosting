@@ -32,7 +32,7 @@ class Provider extends Category implements ProviderInterface
      * @var Configuration
      */
     protected Configuration $configuration;
-    protected const MAX_USERNAME_LENGTH = 16;
+    protected const MAX_USERNAME_LENGTH = 10;
 
     /**
      * @var Api
@@ -69,7 +69,7 @@ class Provider extends Category implements ProviderInterface
         }
 
         $customIp = !empty($createParams->custom_ip) ? $createParams->custom_ip : $this->freeIp();
-        $username = $params->username ?? $this->generateUsername($params->domain);
+        $username = $params->username ?: $this->generateUsername($params->domain);
 
         try {
             $this->api()->createAccount(
