@@ -21,6 +21,8 @@ class Api
 {
     protected Client $client;
     private Configuration $configuration;
+    private const METHOD_POST = 'POST';
+    private const METHOD_GET = 'GET';
 
     public function __construct(Client $client, Configuration $configuration)
     {
@@ -32,7 +34,7 @@ class Api
         string  $command,
         ?array  $params = null,
         ?array  $body = null,
-        ?string $method = 'GET',
+        ?string $method = self::METHOD_GET,
         ?array  $credentials = null
     ): ?array
     {
@@ -100,7 +102,7 @@ class Api
             'ip' => $params->custom_ip,
         );
 
-        $this->makeRequest($command, $query);
+        $this->makeRequest($command, null, $query, self::METHOD_POST);
     }
 
     public function getAccountData(string $username): array

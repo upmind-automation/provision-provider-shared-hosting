@@ -77,7 +77,7 @@ class Provider extends Category implements ProviderInterface
             $this->api()->createAccount(
                 $params,
                 $username,
-                $asReseller,
+                $asReseller
             );
 
             if ($asReseller) {
