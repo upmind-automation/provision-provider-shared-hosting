@@ -150,7 +150,8 @@ trait LogsRequests
     {
         return is_string($value)
             && $key !== 'error'
-            && (in_array($key, [
+            && (
+                in_array($key, [
                 'customHeader',
                 'passwordResetEmail',
                 'bannerUrl',

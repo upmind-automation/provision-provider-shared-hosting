@@ -84,7 +84,6 @@ class Provider extends Category implements ProviderInterface
             } else {
                 return $this->_getInfo($username, 'Account created');
             }
-
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -112,7 +111,8 @@ class Provider extends Category implements ProviderInterface
     public function getInfo(AccountUsername $params): AccountInfo
     {
         try {
-            return $this->_getInfo($params->username,
+            return $this->_getInfo(
+                $params->username,
                 'Account info retrieved',
             );
         } catch (Throwable $e) {
@@ -173,7 +173,8 @@ class Provider extends Category implements ProviderInterface
 
             return $this->_getInfo(
                 $params->username,
-                'Package changed');
+                'Package changed'
+            );
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -236,7 +237,6 @@ class Provider extends Category implements ProviderInterface
     {
         throw $this->errorResult('Operation not supported');
     }
-
 
     /**
      * @throws ProvisionFunctionError

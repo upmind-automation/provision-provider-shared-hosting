@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\DirectAdmin;
@@ -47,8 +48,7 @@ class Api
         ?array  $body = null,
         ?string $method = self::METHOD_GET,
         ?array  $credentials = null
-    ): ?array
-    {
+    ): ?array {
         $requestParams = [];
 
         if ($params) {
@@ -96,7 +96,7 @@ class Api
         $password = $params->password ?: Helper::generatePassword();
         $command = $asReseller ? self::COMMAND_ACCOUNT_RESELLER : self::COMMAND_ACCOUNT_USER;
 
-        $query = array(
+        $query = [
             'action' => 'create',
             'add' => 'Submit',
             'username' => $username,
@@ -106,7 +106,7 @@ class Api
             'domain' => $params->domain,
             'package' => $params->package_name,
             'ip' => $customIp
-        );
+        ];
 
         $this->makeRequest($command, null, $query, self::METHOD_POST);
     }
@@ -115,7 +115,7 @@ class Api
     {
         $account = $this->getUserConfig($username);
 
-        return array(
+        return [
             'username' => $account['username'],
             'domain' => $account['domain'] ?? null,
             'reseller' => $account['usertype'] === 'reseller',
@@ -125,7 +125,7 @@ class Api
             'suspend_reason' => $account['suspended_reason'] ?? null,
             'ip' => $account['ip'] ?? null,
             'nameservers' => [$account['ns1'] ?? null, $account['ns2'] ?? null],
-        );
+        ];
     }
 
     public function getUserConfig(string $username): array
@@ -135,42 +135,42 @@ class Api
 
     public function suspendAccount(string $username): void
     {
-        $query = array(
+        $query = [
             'select0' => $username,
             'suspend' => 'Suspend',
-        );
+        ];
 
         $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
     public function unsuspendAccount(string $username): void
     {
-        $query = array(
+        $query = [
             'select0' => $username,
             'suspend' => 'Unsuspend',
-        );
+        ];
 
         $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
     public function deleteAccount(string $username): void
     {
-        $query = array(
+        $query = [
             'confirmed' => 'Confirm',
             'select0' => $username,
             'delete' => 'yes',
-        );
+        ];
 
         $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
     public function updatePassword(string $username, string $password): void
     {
-        $body = array(
+        $body = [
             'username' => $username,
             'passwd' => $password,
             'passwd2' => $password,
-        );
+        ];
 
         $this->makeRequest(self::COMMAND_USER_PASSWORD, null, $body, self::METHOD_POST);
     }
@@ -181,11 +181,11 @@ class Api
         $asReseller = $account['usertype'] === 'reseller';
         $command = $asReseller ? self::COMMAND_MODIFY_RESELLER : self::COMMAND_MODIFY_USER;
 
-        $query = array(
+        $query = [
             'action' => 'package',
             'user' => $username,
             'package' => $package_name,
-        );
+        ];
 
         $this->makeRequest($command, $query, null, self::METHOD_POST);
     }
@@ -217,19 +217,19 @@ class Api
     {
         $this->getUserConfig($username);
 
-        $query = array(
+        $query = [
             'action' => 'create',
             'type' => 'one_time_url',
             'login_keys_notify_on_creation' => 0,
             'clear_key' => 'yes',
             'expiry' => '30m',
             'ips' => $ip,
-        );
+        ];
 
-        $credentials = array(
+        $credentials = [
             $this->configuration->username . '|' . $username,
             $this->configuration->password
-        );
+        ];
 
         $response = $this->makeRequest(
             self::COMMAND_LOGIN_KEYS,
