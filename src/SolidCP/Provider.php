@@ -32,7 +32,6 @@ class Provider extends Category implements ProviderInterface
     protected const ROLE_ADMIN = 1;
     protected const ROLE_RESELLER = 2;
     protected const ROLE_USER = 3;
-    protected const PASSWORD_CHANGE_SUCCESS = 'Password changed';
 
     protected Configuration $configuration;
     protected Api $api;
