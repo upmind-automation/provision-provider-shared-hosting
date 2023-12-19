@@ -120,10 +120,8 @@ class Provider extends Category implements ProviderInterface
             $this->updateUserPassword($params->username, $password);
         }
 
-        $userId = $this->getUserByUsername($params->username)->UserId;
-
         return LoginUrl::create()
-            ->setLoginUrl($portalUrl . '/Default.aspx?pid=Home&UserID=' . $userId)
+            ->setLoginUrl(rtrim($portalUrl, '/') . '/Default.aspx?pid=Login')
             ->setPostFields([
                 'user' => $params->username,
                 'password' => $password
