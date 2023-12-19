@@ -26,4 +26,26 @@ class ChangePasswordParams extends DataSet
             'password' => ['required', 'string'],
         ]);
     }
+
+    /**
+     * @param string $password
+     * @return $this
+     */
+    public function setPassword(string $password): ChangePasswordParams
+    {
+        $this->setValue('password', $password);
+        return $this;
+    }
+
+    /**
+     * @param GetLoginUrlParams $params
+     * @return $this
+     */
+    public function setFromLoginParams(GetLoginUrlParams $params): ChangePasswordParams
+    {
+        $this->setValue('customer_id', $params->current_password);
+        $this->setValue('subscription_id', $params->subscription_id);
+        $this->setValue('username', $params->username);
+        return $this;
+    }
 }

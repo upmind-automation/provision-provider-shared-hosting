@@ -15,6 +15,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string $login_url Pre-signed url which can be used to sign in
  * @property-read string|null $for_ip IP address the url is valid for, if any
  * @property-read string|null $expires Date/time the link expires, in UTC format `Y-m-d H:i:s`
+ * @property-read array|null $post_fields Post fields with user and password
  */
 class LoginUrl extends ResultData
 {
@@ -24,6 +25,9 @@ class LoginUrl extends ResultData
             'login_url' => ['required', 'url'],
             'for_ip' => ['nullable', 'ip'],
             'expires' => ['nullable', 'date_format:Y-m-d H:i:s'],
+            'post_fields' => ['nullable', 'array'],
+            'post_fields.user' => ['nullable', 'string'],
+            'post_fields.password' => ['nullable', 'string']
         ]);
     }
 
@@ -51,6 +55,16 @@ class LoginUrl extends ResultData
     public function setExpires(?DateTime $expires): self
     {
         $this->setValue('expires', $expires ? $expires->format('Y-m-d H:i:s') : null);
+        return $this;
+    }
+
+    /**
+     * @param array $data
+     * @return $this
+     */
+    public function setPostFields(array $data): self
+    {
+        $this->setValue('post_fields', $data);
         return $this;
     }
 }

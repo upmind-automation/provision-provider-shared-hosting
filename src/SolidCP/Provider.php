@@ -32,6 +32,7 @@ class Provider extends Category implements ProviderInterface
     protected const ROLE_ADMIN = 1;
     protected const ROLE_RESELLER = 2;
     protected const ROLE_USER = 3;
+    protected const PASSWORD_CHANGE_SUCCESS = 'Password changed';
 
     protected Configuration $configuration;
     protected Api $api;
@@ -112,10 +113,40 @@ class Provider extends Category implements ProviderInterface
             $portalUrl = 'https://' . $portalUrl;
         }
 
+        // If the password has not been provided, change the password to a random one.
+        if (empty($params->current_password)) {
+            $this->generatePassword($params);
+        }
+
         $userId = $this->getUserByUsername($params->username)->UserId;
 
         return LoginUrl::create()
-            ->setLoginUrl($portalUrl . '/Default.aspx?pid=Home&UserID=' . $userId);
+            ->setLoginUrl($portalUrl . '/Default.aspx?pid=Home&UserID=' . $userId)
+            ->setPostFields([
+                'user'      => $params->username,
+                'password'  => $params->current_password
+            ]);
+    }
+
+    /**
+     * @param GetLoginUrlParams $params
+     * @return void
+     */
+    protected function generatePassword(GetLoginUrlParams $params): void
+    {
+        $newPassword = substr(md5(microtime()),rand(0,26),10);
+
+        $changePasswordParams = ChangePasswordParams::create()
+            ->setFromLoginParams($params)
+            ->setPassword($newPassword);
+
+        $result = $this->changePassword($changePasswordParams);
+
+        if ($result->getMessage() === self::PASSWORD_CHANGE_SUCCESS) {
+            $params->setCurrentPassword($newPassword);
+        } else {
+            throw $this->errorResult('There was an error setting a new password');
+        }
     }
 
     /**

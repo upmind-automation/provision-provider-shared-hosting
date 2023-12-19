@@ -16,6 +16,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|null $domain Domain name for this account/subscription
  * @property-read string $user_ip IP of the person who wishes to log in
  * @property-read boolean|null $is_reseller Whether or not the account is a reseller
+ * @property-read string|null $current_password current password for the username
  * @property-read SoftwareInstallationIdentifier|null $software
  */
 class GetLoginUrlParams extends DataSet
@@ -30,6 +31,17 @@ class GetLoginUrlParams extends DataSet
             'user_ip' => ['required', 'ip'],
             'is_reseller' => ['boolean'],
             'software' => ['nullable', SoftwareInstallationIdentifier::class],
+            'current_password' => ['nullable', 'string']
         ]);
+    }
+
+    /**
+     * @param string $value
+     * @return $this
+     */
+    public function setCurrentPassword(string $value): GetLoginUrlParams
+    {
+        $this->setValue('current_password', $value);
+        return $this;
     }
 }
