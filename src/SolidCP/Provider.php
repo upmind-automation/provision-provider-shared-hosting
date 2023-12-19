@@ -134,7 +134,7 @@ class Provider extends Category implements ProviderInterface
      */
     protected function generatePassword(GetLoginUrlParams $params): void
     {
-        $newPassword = substr(md5(microtime()),rand(0,26),10);
+        $newPassword = Helper::generateStrictPassword(10, true, true, true);
 
         $changePasswordParams = ChangePasswordParams::create()
             ->setFromLoginParams($params)
