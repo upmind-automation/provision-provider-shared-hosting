@@ -21,6 +21,19 @@ class Api
 {
     protected Client $client;
     private Configuration $configuration;
+    private const METHOD_POST = 'POST';
+    private const METHOD_GET = 'GET';
+    private const COMMAND_FREE_IPS = '/CMD_API_SHOW_RESELLER_IPS';
+    private const COMMAND_ACCOUNT_RESELLER = '/CMD_API_ACCOUNT_RESELLER';
+    private const COMMAND_ACCOUNT_USER = '/CMD_API_ACCOUNT_USER';
+    private const COMMAND_SHOW_INFO = '/CMD_API_SHOW_USER_CONFIG';
+    private const COMMAND_SELECT_USERS = '/CMD_API_SELECT_USERS';
+    private const COMMAND_USER_PASSWORD = '/CMD_API_USER_PASSWD';
+    private const COMMAND_MODIFY_RESELLER = '/CMD_API_MODIFY_RESELLER';
+    private const COMMAND_MODIFY_USER = '/CMD_API_MODIFY_USER';
+    private const COMMAND_SHOW_USER_USAGE = '/CMD_API_SHOW_USER_USAGE';
+    private const COMMAND_LOGIN_KEYS = '/CMD_API_LOGIN_KEYS';
+    private const STATUS_FREE = 'free';
 
     public function __construct(Client $client, Configuration $configuration)
     {
@@ -32,7 +45,7 @@ class Api
         string  $command,
         ?array  $params = null,
         ?array  $body = null,
-        ?string $method = 'GET',
+        ?string $method = self::METHOD_GET,
         ?array  $credentials = null
     ): ?array
     {
@@ -78,15 +91,10 @@ class Api
         return $parsedResult;
     }
 
-    public function createAccount(CreateParams $params, string $username, bool $asReseller): void
+    public function createAccount(CreateParams $params, string $username, bool $asReseller, string $customIp): void
     {
         $password = $params->password ?: Helper::generatePassword();
-
-        if ($asReseller) {
-            $command = '/CMD_API_ACCOUNT_RESELLER';
-        } else {
-            $command = '/CMD_API_ACCOUNT_USER';
-        }
+        $command = $asReseller ? self::COMMAND_ACCOUNT_RESELLER : self::COMMAND_ACCOUNT_USER;
 
         $query = array(
             'action' => 'create',
@@ -97,10 +105,10 @@ class Api
             'passwd2' => $password,
             'domain' => $params->domain,
             'package' => $params->package_name,
-            'ip' => $params->custom_ip,
+            'ip' => $customIp
         );
 
-        $this->makeRequest($command, $query);
+        $this->makeRequest($command, null, $query, self::METHOD_POST);
     }
 
     public function getAccountData(string $username): array
@@ -122,70 +130,56 @@ class Api
 
     public function getUserConfig(string $username): array
     {
-        $command = '/CMD_API_SHOW_USER_CONFIG';
-        $query = array(
-            'user' => $username,
-        );
-
-        return $this->makeRequest($command, $query);
+        return $this->makeRequest(self::COMMAND_SHOW_INFO, ['user' => $username]);
     }
 
     public function suspendAccount(string $username): void
     {
-        $command = '/CMD_API_SELECT_USERS';
         $query = array(
             'select0' => $username,
             'suspend' => 'Suspend',
         );
 
-        $this->makeRequest($command, $query, null, 'POST');
+        $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
     public function unsuspendAccount(string $username): void
     {
-        $command = '/CMD_API_SELECT_USERS';
         $query = array(
             'select0' => $username,
             'suspend' => 'Unsuspend',
         );
 
-        $this->makeRequest($command, $query, null, 'POST');
+        $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
     public function deleteAccount(string $username): void
     {
-        $command = '/CMD_API_SELECT_USERS';
         $query = array(
             'confirmed' => 'Confirm',
             'select0' => $username,
             'delete' => 'yes',
         );
 
-        $this->makeRequest($command, $query, null, 'POST');
+        $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
     public function updatePassword(string $username, string $password): void
     {
-        $command = '/CMD_API_USER_PASSWD';
         $body = array(
             'username' => $username,
             'passwd' => $password,
             'passwd2' => $password,
         );
 
-        $this->makeRequest($command, null, $body, 'POST');
+        $this->makeRequest(self::COMMAND_USER_PASSWORD, null, $body, self::METHOD_POST);
     }
 
     public function updatePackage(string $username, string $package_name)
     {
         $account = $this->getUserConfig($username);
         $asReseller = $account['usertype'] === 'reseller';
-
-        if ($asReseller) {
-            $command = '/CMD_API_MODIFY_RESELLER';
-        } else {
-            $command = '/CMD_API_MODIFY_USER';
-        }
+        $command = $asReseller ? self::COMMAND_MODIFY_RESELLER : self::COMMAND_MODIFY_USER;
 
         $query = array(
             'action' => 'package',
@@ -193,17 +187,12 @@ class Api
             'package' => $package_name,
         );
 
-        $this->makeRequest($command, $query, null, 'POST');
+        $this->makeRequest($command, $query, null, self::METHOD_POST);
     }
 
-    public function getAccountUsage(string $username)
+    public function getAccountUsage(string $username): UsageData
     {
-        $command = '/CMD_API_SHOW_USER_USAGE';
-        $query = array(
-            'user' => $username,
-        );
-
-        $usage = $this->makeRequest($command, $query);
+        $usage = $this->makeRequest(self::COMMAND_SHOW_USER_USAGE, ['user' => $username]);
         $config = $this->getUserConfig($username);
 
         $disk = UnitsConsumed::create()
@@ -228,7 +217,6 @@ class Api
     {
         $this->getUserConfig($username);
 
-        $command = '/CMD_API_LOGIN_KEYS';
         $query = array(
             'action' => 'create',
             'type' => 'one_time_url',
@@ -243,8 +231,28 @@ class Api
             $this->configuration->password
         );
 
-        $response = $this->makeRequest($command, $query, null, 'POST', $credentials);
+        $response = $this->makeRequest(
+            self::COMMAND_LOGIN_KEYS,
+            $query,
+            null,
+            self::METHOD_POST,
+            $credentials
+        );
 
         return $response['result'];
+    }
+
+    public function freeIpList(): string
+    {
+        $ipList = $this->makeRequest(self::COMMAND_FREE_IPS);
+
+        foreach($ipList as $ip) {
+            $ipInfo = $this->makeRequest(self::COMMAND_FREE_IPS, ['ip' => $ip]);
+            if (!empty($ipInfo['status']) && $ipInfo['status'] === self::STATUS_FREE) {
+                return $ip;
+            }
+        }
+
+        return '';
     }
 }

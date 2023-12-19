@@ -32,6 +32,7 @@ class Provider extends Category implements ProviderInterface
      * @var Configuration
      */
     protected Configuration $configuration;
+    protected const MAX_USERNAME_LENGTH = 10;
 
     /**
      * @var Api
@@ -67,17 +68,15 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        if (!$params->custom_ip) {
-            throw $this->errorResult('Domain IP is required');
-        }
-
-        $username = $params->username ?? $this->generateUsername($params->domain);
+        $customIp = !empty($createParams->custom_ip) ? $createParams->custom_ip : $this->freeIp();
+        $username = $params->username ?: $this->generateUsername($params->domain);
 
         try {
             $this->api()->createAccount(
                 $params,
                 $username,
                 $asReseller,
+                $customIp
             );
 
             if ($asReseller) {
@@ -96,13 +95,8 @@ class Provider extends Category implements ProviderInterface
         return substr(
             preg_replace('/^[^a-z]+/', '', preg_replace('/[^a-z0-9]/', '', strtolower($base))),
             0,
-            $this->getMaxUsernameLength()
+            self::MAX_USERNAME_LENGTH
         );
-    }
-
-    protected function getMaxUsernameLength(): int
-    {
-        return 16;
     }
 
     protected function _getInfo(string $username, string $message): AccountInfo
@@ -292,5 +286,16 @@ class Provider extends Category implements ProviderInterface
         ]);
 
         return $this->api = new Api($client, $this->configuration);
+    }
+
+    protected function freeIp()
+    {
+        $ip = $this->api()->freeIpList();
+
+        if (!empty($ip)) {
+            return $ip;
+        }
+
+        throw $this->errorResult('Domain IP is required, no free ips found');
     }
 }
