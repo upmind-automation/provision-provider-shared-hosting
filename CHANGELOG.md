@@ -2,6 +2,13 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.5.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.0) - 2023-12-19
+
+- Update getLoginUrl()
+  - Add optional support for passing `current_password`
+  - Add optional support for returning `post_fields`
+  - Implement SolidCP post fields response
+
 ## [v6.4.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.4.1) - 2023-12-19
 
 - Update upmind/enhance-sdk to v10
