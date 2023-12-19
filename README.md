@@ -42,6 +42,7 @@ The following providers are currently implemented:
   - [Enhance](https://enhance.com/)
   - [InterWorx](https://appendix.interworx.com/current/api/index.html)
   - [SolidCP](https://solidcp.com/kb/)
+  - [DirectAdmin](https://www.directadmin.com/api.php)
 
 ## Functions
 
@@ -73,6 +74,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
  - [Nikolai Arsov](https://github.com/nikiarsov777)
  - [Codeline](https://github.com/CodelineNL)
  - [Nikolay Bogdanov](https://github.com/nikolay-mocha)
+ - [Ana Carrasco](https://github.com/AnaGema)
  - [All Contributors](../../contributors)
 
 ## License
