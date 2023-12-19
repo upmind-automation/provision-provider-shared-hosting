@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.4.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.4.0) - 2023-12-19
+
+- Implement DirectAdmin
+
 ## [v6.3.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.3.1) - 2023-10-30
 
 - Fix 20i API requests where logging was previously missing
