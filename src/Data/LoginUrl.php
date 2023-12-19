@@ -26,8 +26,6 @@ class LoginUrl extends ResultData
             'for_ip' => ['nullable', 'ip'],
             'expires' => ['nullable', 'date_format:Y-m-d H:i:s'],
             'post_fields' => ['nullable', 'array'],
-            'post_fields.user' => ['nullable', 'string'],
-            'post_fields.password' => ['nullable', 'string']
         ]);
     }
 
@@ -59,10 +57,10 @@ class LoginUrl extends ResultData
     }
 
     /**
-     * @param array $data
+     * @param array|null $data
      * @return $this
      */
-    public function setPostFields(array $data): self
+    public function setPostFields(?array $data): self
     {
         $this->setValue('post_fields', $data);
         return $this;
