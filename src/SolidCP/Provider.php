@@ -109,13 +109,16 @@ class Provider extends Category implements ProviderInterface
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         $portalUrl = $this->configuration->portal_url;
+        $password = $params->current_password;
+
         if (!array_key_exists('scheme', parse_url($portalUrl))) {
             $portalUrl = 'https://' . $portalUrl;
         }
 
         // If the password has not been provided, change the password to a random one.
-        if (empty($params->current_password)) {
-            $this->generatePassword($params);
+        if (empty($password)) {
+            $password = $this->generatePassword();
+            $this->updateUserPassword($params->username, $password);
         }
 
         $userId = $this->getUserByUsername($params->username)->UserId;
@@ -124,29 +127,33 @@ class Provider extends Category implements ProviderInterface
             ->setLoginUrl($portalUrl . '/Default.aspx?pid=Home&UserID=' . $userId)
             ->setPostFields([
                 'user'      => $params->username,
-                'password'  => $params->current_password
+                'password'  => $password
             ]);
     }
 
     /**
-     * @param GetLoginUrlParams $params
+     * @return string
+     */
+    protected function generatePassword(): string
+    {
+        return Helper::generateStrictPassword(10, true, true, true);
+    }
+
+    /**
+     * @param string $username
+     * @param string $password
      * @return void
      */
-    protected function generatePassword(GetLoginUrlParams $params): void
+    protected function updateUserPassword(string $username, string $password)
     {
-        $newPassword = Helper::generateStrictPassword(10, true, true, true);
-
-        $changePasswordParams = ChangePasswordParams::create()
-            ->setFromLoginParams($params)
-            ->setPassword($newPassword);
-
-        $result = $this->changePassword($changePasswordParams);
-
-        if ($result->getMessage() === self::PASSWORD_CHANGE_SUCCESS) {
-            $params->setCurrentPassword($newPassword);
-        } else {
-            throw $this->errorResult('There was an error setting a new password');
-        }
+        $userId = $this->getUserByUsername($username)->UserId;
+        $client_params = ['username' => $username, 'password' => $password, 'userId' => $userId];
+        $this->api()->execute(
+            'Users',
+            'ChangeUserPassword',
+            $client_params,
+            'ChangeUserPasswordResult'
+        );
     }
 
     /**
@@ -154,10 +161,7 @@ class Provider extends Category implements ProviderInterface
      */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
-        $userId = $this->getUserByUsername($params->username)->UserId;
-        $client_params = ['username' => $params->username, 'password' => $params->password, 'userId' => $userId];
-        $this->api()->execute('Users', 'ChangeUserPassword', $client_params, 'ChangeUserPasswordResult');
-
+        $this->updateUserPassword($params->username, $params->password);
         return $this->emptyResult('Password changed');
     }
 
