@@ -125,8 +125,8 @@ class Provider extends Category implements ProviderInterface
         return LoginUrl::create()
             ->setLoginUrl($portalUrl . '/Default.aspx?pid=Home&UserID=' . $userId)
             ->setPostFields([
-                'user'      => $params->username,
-                'password'  => $password
+                'user' => $params->username,
+                'password' => $password
             ]);
     }
 
