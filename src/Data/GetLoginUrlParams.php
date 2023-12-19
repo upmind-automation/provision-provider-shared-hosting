@@ -34,14 +34,4 @@ class GetLoginUrlParams extends DataSet
             'current_password' => ['nullable', 'string']
         ]);
     }
-
-    /**
-     * @param string $value
-     * @return $this
-     */
-    public function setCurrentPassword(string $value): GetLoginUrlParams
-    {
-        $this->setValue('current_password', $value);
-        return $this;
-    }
 }
