@@ -230,16 +230,17 @@ class Api
      * @param string $domain New hosting package domain name
      * @param string|null $stackUser Stack user reference E.g., stack-user:1235
      *
-     * @throws ProvisionFunctionError If create request fails
+     * @throws ProvisionFunctionError|Throwable If create request fails
      *
      * @return int New hosting package id
      */
-    public function createPackage($planId, string $domain, ?string $stackUser = null): int
+    public function createPackage($planId, string $domain, string $location, ?string $stackUser = null): int
     {
         try {
             $params = [
                 'type' => $planId,
                 'domain_name' => $domain,
+                'location' => $location
             ];
 
             if (isset($stackUser)) {
@@ -542,5 +543,13 @@ class Api
     {
         return $e instanceof CurlException
             && preg_match('/(^|[^\w])timed out([^\w]|$)/i', $e->getMessage());
+    }
+
+    /**
+     * @return mixed
+     */
+    public function locations()
+    {
+        return $this->services->getWithFields('/reseller/*/availableDcLocations');
     }
 }

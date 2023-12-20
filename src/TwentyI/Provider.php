@@ -71,9 +71,16 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $this->errorResult('Domain name is required');
         }
 
+        if (empty($params->location)) {
+            throw $this->errorResult('Location missing');
+        }
+
+        $this->isLocationValid($params->location);
+
         $hostingId = $this->api()->createPackage(
             $params->package_name,
             $params->domain,
+            $params->location,
             $customerId = $this->findOrCreateUser($params)
         );
 
@@ -399,5 +406,36 @@ class Provider extends SharedHosting implements ProviderInterface
             $this->configuration->general_api_key,
             $this->configuration->debug ? $this->getLogger() : null
         ));
+    }
+
+    /**
+     * Checks if the provided location string matches with any occurrence
+     * from 20i endpoint, if not notify the location si not valid.
+     *
+     * If the response from the API is empty then there was an error
+     * retrieving the locations list.
+     *
+     * @param string $location
+     * @return bool
+     */
+    protected function isLocationValid(string $location): bool
+    {
+        $location = strtolower(trim($location));
+        $locations = $this->api()->locations();
+
+        if (empty($locations)) {
+            throw $this->errorResult('There was an error retrieving the locations');
+        }
+
+        foreach ($locations as $key => $value) {
+            if (
+                $location === strtolower(trim($key)) ||
+                $location === strtolower(trim($value))
+            ) {
+                return true;
+            }
+        }
+
+        throw $this->errorResult('Location value not valid');
     }
 }
