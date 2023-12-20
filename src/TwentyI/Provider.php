@@ -420,7 +420,7 @@ class Provider extends SharedHosting implements ProviderInterface
      */
     protected function isLocationValid(string $location): bool
     {
-        $location = strtolower(trim($location));
+        $location = trim($location);
         $locations = $this->api()->locations();
 
         if (empty($locations)) {
@@ -428,10 +428,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         foreach ($locations as $key => $value) {
-            if (
-                $location === strtolower(trim($key)) ||
-                $location === strtolower(trim($value))
-            ) {
+            if ($location === trim($key) || $location === trim($value)) {
                 return true;
             }
         }
