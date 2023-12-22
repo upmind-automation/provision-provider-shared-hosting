@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.5.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.1) - 2023-12-22
+
+- Update DirectAdmin\\Api::getLoginUrl() to add 127.0.0.1 to session IPs
+
 ## [v6.5.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.0) - 2023-12-19
 
 - Update getLoginUrl()
