@@ -223,7 +223,7 @@ class Api
             'login_keys_notify_on_creation' => 0,
             'clear_key' => 'yes',
             'expiry' => '30m',
-            'ips' => $ip,
+            'ips' => implode(',', [$ip, '127.0.0.1']),
         ];
 
         $credentials = [
