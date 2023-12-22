@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## TBC ## [v]() - 2023-12-22
+
+- Updated Enhance create() method to receive and optional location.
+- Updated the method getInfo() to return the location id and name.
+
 ## [v6.5.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.0) - 2023-12-19
 
 - Update getLoginUrl()

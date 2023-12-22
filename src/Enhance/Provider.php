@@ -103,7 +103,7 @@ class Provider extends Category implements ProviderInterface
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
 
             if ($domain) {
-                $this->createWebsite($customerId, $subscriptionId, $domain, $location ?? '');
+                $this->createWebsite($customerId, $subscriptionId, $domain, $location->id ?? '');
             }
 
             return $this->getSubscriptionInfo($customerId, $subscriptionId, $domain, $email)
@@ -374,6 +374,9 @@ class Provider extends Category implements ProviderInterface
         throw $this->errorResult('Customer not found', ['email' => $email]);
     }
 
+    /**
+     * @throws ApiException
+     */
     protected function getSubscriptionInfo(
         string $customerId,
         ?int $subscriptionId,
@@ -399,6 +402,7 @@ class Provider extends Category implements ProviderInterface
         }, $this->api()->branding()->getBranding($this->configuration->org_id)->getNameServers());
 
         $serverGroupId = $this->findServerGroupIdByWebsite($website);
+        $groupInfo = $this->findLocation($serverGroupId);
 
         return AccountInfo::create()
             ->setMessage('Subscription info obtained')
@@ -411,7 +415,8 @@ class Provider extends Category implements ProviderInterface
             ->setSuspended(boolval($subscription->getSuspendedBy()))
             ->setIp($website ? implode(', ', $this->getWebsiteIps($website)) : null)
             ->setNameservers($nameservers)
-            ->setServerGroupId($serverGroupId)
+            ->setLocationId($groupInfo->id)
+            ->setLocationName($groupInfo->name)
             ->setDebug([
                 'website' => $website ? $website->jsonSerialize() : null,
                 'subscription' => $subscription->jsonSerialize(),
@@ -970,10 +975,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @param string $location
-     * @return string
+     * @return object
      * @throws ApiException
      */
-    protected function findLocation(string $location): string
+    protected function findLocation(string $location): object
     {
         // Get the available groups and check the given one exist
         $validGroupId = '';
@@ -984,18 +989,20 @@ class Provider extends Category implements ProviderInterface
         }
 
         foreach ($groups->getItems() as $group) {
-
             if ($group->getId() === $location || $group->getName() === $location) {
-                $validGroupId = $group->getId();
+                $validGroup = (object)[
+                    'id' => $group->getId(),
+                    'name' => $group->getName()
+                ];
             }
         }
 
         // If the input is correct, check the value against the actual server group id
-        if (!empty($validGroupId)) {
+        if (!empty($validGroup)) {
             $servers = $this->api()->servers()->getServers();
             foreach ($servers->getItems() as $server) {
-                if ($server->getGroupId() === $validGroupId) {
-                    return $validGroupId;
+                if ($server->getGroupId() === $validGroup->id) {
+                    return $validGroup;
                 }
             }
             throw $this->errorResult('There location specified is not available');

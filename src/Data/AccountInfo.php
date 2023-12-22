@@ -23,6 +23,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string[]|null $nameservers
  * @property-read SoftwareInstallation|null $software
  * @property-read string|null $location
+ * @property-read string|null $location_name
  */
 class AccountInfo extends ResultData
 {
@@ -43,6 +44,7 @@ class AccountInfo extends ResultData
             'nameservers.*' => ['string'],
             'software' => ['nullable', SoftwareInstallation::class],
             'location' => ['nullable', 'string'],
+            'location_name' => ['nullable', 'string'],
         ]);
     }
 
@@ -161,12 +163,22 @@ class AccountInfo extends ResultData
     }
 
     /**
-     * @param string $location
+     * @param string $locationId
      * @return $this
      */
-    public function setServerGroupId(string $location): AccountInfo
+    public function setLocationId(string $locationId): AccountInfo
     {
-        $this->setValue('location', $location);
+        $this->setValue('location', $locationId);
+        return $this;
+    }
+
+    /**
+     * @param string $locationName
+     * @return $this
+     */
+    public function setLocationName(string $locationName): AccountInfo
+    {
+        $this->setValue('location_name', $locationName);
         return $this;
     }
 }
