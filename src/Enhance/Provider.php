@@ -79,6 +79,10 @@ class Provider extends Category implements ProviderInterface
     public function create(CreateParams $params): AccountInfo
     {
         try {
+            if (!empty($params->location)) {
+                $location = $this->findLocation(trim($params->location));
+            }
+
             $plan = $this->findPlan($params->package_name);
 
             if ($customerId = $params->customer_id) {
@@ -99,7 +103,7 @@ class Provider extends Category implements ProviderInterface
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
 
             if ($domain) {
-                $this->createWebsite($customerId, $subscriptionId, $domain);
+                $this->createWebsite($customerId, $subscriptionId, $domain, $location ?? '');
             }
 
             return $this->getSubscriptionInfo($customerId, $subscriptionId, $domain, $email)
@@ -704,11 +708,18 @@ class Provider extends Category implements ProviderInterface
     /**
      * Create a new website and return the id.
      */
-    protected function createWebsite(string $customerId, int $subscriptionId, string $domain): string
+    protected function createWebsite(string $customerId, int $subscriptionId, string $domain, string $location): string
     {
-        $newWebsite = (new NewWebsite())
-            ->setSubscriptionId($subscriptionId)
-            ->setDomain($domain);
+        if (!empty($location)) {
+            $newWebsite = (new NewWebsite())
+                ->setSubscriptionId($subscriptionId)
+                ->setServerGroupId($location)
+                ->setDomain($domain);
+        } else {
+            $newWebsite = (new NewWebsite())
+                ->setSubscriptionId($subscriptionId)
+                ->setDomain($domain);
+        }
 
         return $this->api()->websites()
             ->createWebsite($customerId, $newWebsite)
@@ -930,5 +941,40 @@ class Provider extends Category implements ProviderInterface
 
         // let the provision system handle this one
         throw $e;
+    }
+
+    /**
+     * @param string $location
+     * @return string
+     * @throws ApiException
+     */
+    protected function findLocation(string $location): string
+    {
+        // Get the available groups and check the given one exist
+        $validGroupId = '';
+        $groups = $this->api()->servers()->getServerGroups();
+
+        if (empty($groups->getItems())) {
+            throw $this->errorResult('There was a problem trying to retrieve the group list');
+        }
+
+        foreach ($groups->getItems() as $group) {
+
+            if ($group->getId() === $location || $group->getName() === $location) {
+                $validGroupId = $group->getId();
+            }
+        }
+
+        // If the input is correct, check the value against the actual server group id
+        if (!empty($validGroupId)) {
+            $servers = $this->api()->servers()->getServers();
+            foreach ($servers->getItems() as $server) {
+                if ($server->getGroupId() === $validGroupId) {
+                    return $validGroupId;
+                }
+            }
+            throw $this->errorResult('There location specified is not available');
+        }
+        throw $this->errorResult('There location specified is not valid');
     }
 }
