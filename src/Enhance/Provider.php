@@ -398,6 +398,8 @@ class Provider extends Category implements ProviderInterface
             return $ns->getDomain();
         }, $this->api()->branding()->getBranding($this->configuration->org_id)->getNameServers());
 
+        $serverGroupId = $this->findServerGroupIdByWebsite($website);
+
         return AccountInfo::create()
             ->setMessage('Subscription info obtained')
             ->setCustomerId($customerId)
@@ -409,10 +411,33 @@ class Provider extends Category implements ProviderInterface
             ->setSuspended(boolval($subscription->getSuspendedBy()))
             ->setIp($website ? implode(', ', $this->getWebsiteIps($website)) : null)
             ->setNameservers($nameservers)
+            ->setServerGroupId($serverGroupId)
             ->setDebug([
                 'website' => $website ? $website->jsonSerialize() : null,
                 'subscription' => $subscription->jsonSerialize(),
             ]);
+    }
+
+    /**
+     * @param Website $website
+     * @return string
+     * @throws ApiException
+     */
+    protected function findServerGroupIdByWebsite(Website $website): string
+    {
+        $servers = $this->api()->servers()->getServers();
+        $websiteServerId = $website->getAppServerId();
+
+        if (empty($servers)) {
+            throw $this->errorResult('There was an error retrieving the server information.');
+        }
+
+        foreach ($servers->getItems() as $server) {
+            if (strcasecmp($websiteServerId, $server->getId()) === 0) {
+                return $server->getGroupId();
+            }
+        }
+        throw $this->errorResult('There was an error trying to find the website server.');
     }
 
     protected function getSubscriptionUsage(
