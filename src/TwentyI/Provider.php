@@ -75,12 +75,10 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $this->errorResult('Location missing');
         }
 
-        $this->isLocationValid($params->location);
-
         $hostingId = $this->api()->createPackage(
             $params->package_name,
             $params->domain,
-            $params->location,
+            $this->getLocationIdentifier($params->location),
             $customerId = $this->findOrCreateUser($params)
         );
 
@@ -259,6 +257,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setPackageName((string)$packageName)
             ->setSuspended($suspended)
             ->setSuspendReason($suspendReason)
+            ->setLocation($info->web->info->zone)
             ->setIp($ip);
     }
 
@@ -416,9 +415,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * retrieving the locations list.
      *
      * @param string $location
-     * @return bool
+     * @return string
      */
-    protected function isLocationValid(string $location): bool
+    protected function getLocationIdentifier(string $location): string
     {
         $location = trim($location);
         $locations = $this->api()->locations();
@@ -429,7 +428,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
         foreach ($locations as $key => $value) {
             if ($location === trim($key) || $location === trim($value)) {
-                return true;
+                return $key;
             }
         }
 
