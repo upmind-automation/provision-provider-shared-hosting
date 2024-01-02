@@ -52,7 +52,7 @@ class Provider extends Category implements ProviderInterface
         return AboutData::create()
             ->setName('DirectAdmin')
             ->setDescription('Create and manage DirectAdmin accounts and resellers using the DirectAdmin API')
-            ->setLogoUrl('https://api.upmind.io/images/logos/provision/direct-admin-logo@2x.png');
+            ->setLogoUrl('https://api.upmind.io/images/logos/provision/direct-admin-logo.png');
     }
 
     /**
