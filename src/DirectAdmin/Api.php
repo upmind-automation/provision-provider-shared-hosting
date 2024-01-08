@@ -34,7 +34,6 @@ class Api
     private const COMMAND_MODIFY_USER = '/CMD_API_MODIFY_USER';
     private const COMMAND_SHOW_USER_USAGE = '/CMD_API_SHOW_USER_USAGE';
     private const COMMAND_LOGIN_KEYS = '/CMD_API_LOGIN_KEYS';
-    private const STATUS_FREE = 'free';
 
     public function __construct(Client $client, Configuration $configuration)
     {
@@ -242,13 +241,13 @@ class Api
         return $response['result'];
     }
 
-    public function freeIpList(): string
+    public function freeIpList(string $ipStatus): string
     {
         $ipList = $this->makeRequest(self::COMMAND_FREE_IPS);
 
         foreach($ipList as $ip) {
             $ipInfo = $this->makeRequest(self::COMMAND_FREE_IPS, ['ip' => $ip]);
-            if (!empty($ipInfo['status']) && $ipInfo['status'] === self::STATUS_FREE) {
+            if (!empty($ipInfo['status']) && $ipInfo['status'] === $ipStatus) {
                 return $ip;
             }
         }
