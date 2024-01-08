@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.5.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.2) - 2024-01-08
+
+- Update DirectAdmin add `ip_status` configuration value to specify IP status type
+  when allocating IPs to new accounts
+    - By default, automatically prefer `server` then `shared` then `free`
+
 ## [v6.5.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.1) - 2023-12-22
 
 - Update DirectAdmin\\Api::getLoginUrl() to add 127.0.0.1 to session IPs
