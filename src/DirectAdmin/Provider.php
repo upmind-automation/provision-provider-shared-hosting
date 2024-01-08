@@ -33,6 +33,9 @@ class Provider extends Category implements ProviderInterface
      */
     protected Configuration $configuration;
     protected const MAX_USERNAME_LENGTH = 10;
+    protected const STATUS_AUTO = 'auto';
+    protected const STATUS_SERVER = 'server';
+    protected const STATUS_LIST = ['server', 'shared', 'free'];
 
     /**
      * @var Api
@@ -68,7 +71,15 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        $customIp = !empty($createParams->custom_ip) ? $createParams->custom_ip : $this->freeIp();
+        if (empty($params->custom_ip)) {
+            // Check that the ip status is set, if not set Server as default.
+            $status = !empty($this->configuration->ip_status) ? $this->configuration->ip_status : self::STATUS_SERVER;
+            $customIp = $status !== self::STATUS_AUTO ? $this->freeIpByPriority($status) :
+                $this->freeIpByPriority('');
+        } else {
+            $customIp = $params->custom_ip;
+        }
+
         $username = $params->username ?: $this->generateUsername($params->domain);
 
         try {
@@ -288,9 +299,18 @@ class Provider extends Category implements ProviderInterface
         return $this->api = new Api($client, $this->configuration);
     }
 
-    protected function freeIp()
+    protected function freeIpByPriority(string $ipStatus): string
     {
-        $ip = $this->api()->freeIpList();
+        if (empty($ipStatus)) {
+            foreach(self::STATUS_LIST as $item) {
+                $ip = $this->api()->freeIpList($item);
+                if (!empty($ip)){
+                    return $ip;
+                }
+            }
+        }
+
+        $ip = $this->api()->freeIpList($ipStatus);
 
         if (!empty($ip)) {
             return $ip;

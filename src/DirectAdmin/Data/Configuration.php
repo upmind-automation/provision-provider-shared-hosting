@@ -13,6 +13,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string $username DirectAdmin username
  * @property-read string $password DirectAdmin password
  * @property-read bool|null $debug Whether or not to enable debug logging
+ * @property-read string|null ip_status type of ip status
  */
 class Configuration extends DataSet
 {
@@ -23,6 +24,7 @@ class Configuration extends DataSet
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
             'debug' => ['boolean'],
+            'ip_status' => ['string', 'in:auto,server,shared,free'],
         ]);
     }
 }
