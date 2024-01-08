@@ -245,7 +245,7 @@ class Api
     {
         $ipList = $this->makeRequest(self::COMMAND_FREE_IPS);
 
-        foreach($ipList as $ip) {
+        foreach ($ipList as $ip) {
             $ipInfo = $this->makeRequest(self::COMMAND_FREE_IPS, ['ip' => $ip]);
             if (!empty($ipInfo['status']) && $ipInfo['status'] === $ipStatus) {
                 return $ip;

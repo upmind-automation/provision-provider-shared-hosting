@@ -304,7 +304,7 @@ class Provider extends Category implements ProviderInterface
         if (empty($ipStatus)) {
             foreach(self::STATUS_LIST as $item) {
                 $ip = $this->api()->freeIpList($item);
-                if (!empty($ip)){
+                if (!empty($ip)) {
                     return $ip;
                 }
             }
