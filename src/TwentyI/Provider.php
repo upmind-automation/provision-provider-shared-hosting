@@ -257,7 +257,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setPackageName((string)$packageName)
             ->setSuspended($suspended)
             ->setSuspendReason($suspendReason)
-            ->setLocation($info->web->info->zone)
+            ->setLocation($info->web->info->zone ?? null)
             ->setIp($ip);
     }
 
