@@ -71,14 +71,14 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $this->errorResult('Domain name is required');
         }
 
-        if (empty($params->location)) {
-            throw $this->errorResult('Location missing');
+        if (!empty($params->location)) {
+            $locationId = $this->getLocationId($params->location);
         }
 
         $hostingId = $this->api()->createPackage(
             $params->package_name,
             $params->domain,
-            $this->getLocationIdentifier($params->location),
+            $locationId ?? null,
             $customerId = $this->findOrCreateUser($params)
         );
 
@@ -381,6 +381,29 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
+     * Get the location identifier for the given location id or name.
+     *
+     * @param string $location Id or name
+     *
+     * @return string Location identifier
+     */
+    protected function getLocationId(string $location): string
+    {
+        $location = trim($location);
+        $locations = $this->api()->listDataCentreLocations();
+
+        foreach ($locations as $key => $value) {
+            if ($location === trim($key) || $location === trim($value)) {
+                return $key;
+            }
+        }
+
+        throw $this->errorResult(sprintf('Location "%s" not found', $location), [
+            'available_locations' => $locations,
+        ]);
+    }
+
+    /**
      * Returns the given email address with the given domain name in the sub-folder
      * section.
      *
@@ -405,33 +428,5 @@ class Provider extends SharedHosting implements ProviderInterface
             $this->configuration->general_api_key,
             $this->configuration->debug ? $this->getLogger() : null
         ));
-    }
-
-    /**
-     * Checks if the provided location string matches with any occurrence
-     * from 20i endpoint, if not notify the location si not valid.
-     *
-     * If the response from the API is empty then there was an error
-     * retrieving the locations list.
-     *
-     * @param string $location
-     * @return string
-     */
-    protected function getLocationIdentifier(string $location): string
-    {
-        $location = trim($location);
-        $locations = $this->api()->locations();
-
-        if (empty($locations)) {
-            throw $this->errorResult('There was an error retrieving the locations');
-        }
-
-        foreach ($locations as $key => $value) {
-            if ($location === trim($key) || $location === trim($value)) {
-                return $key;
-            }
-        }
-
-        throw $this->errorResult('Location value not valid');
     }
 }
