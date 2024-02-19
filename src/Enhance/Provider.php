@@ -1004,6 +1004,9 @@ class Provider extends Category implements ProviderInterface
 
                             $message .= sprintf(': %s not found', ucfirst($object));
                             break;
+                        case 'already_exists':
+                            $message .= sprintf(': %s already exists', ucfirst($responseData['detail']));
+                            break;
                     }
                 }
             }
