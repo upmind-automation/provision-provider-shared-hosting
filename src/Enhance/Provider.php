@@ -81,6 +81,8 @@ class Provider extends Category implements ProviderInterface
     public function create(CreateParams $params): AccountInfo
     {
         try {
+            $customerCreated = false;
+
             $plan = $this->findPlan($params->package_name);
 
             if ($params->location && !$this->configuration->create_subscription_only) {
@@ -96,6 +98,7 @@ class Provider extends Category implements ProviderInterface
                     $params->password ?: $this->generateRandomPassword()
                 );
                 $email = $params->email;
+                $customerCreated = true;
             }
 
             $domain = (!empty($params->domain) && $this->configuration->remove_www)
@@ -114,7 +117,20 @@ class Provider extends Category implements ProviderInterface
                     $this->configuration->create_subscription_only ? 'Subscription' : 'Website'
                 ));
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            if ($customerCreated) {
+                try {
+                    $this->api()->orgs()->deleteOrg($customerId, 'true');
+                } catch (Throwable $e) {
+                    // ignore
+                    $errorData = [
+                        'customer_delete' => [
+                            'error' => $e->getMessage(),
+                        ],
+                    ];
+                }
+            }
+
+            throw $this->handleException($e, $errorData ?? []);
         }
     }
 
