@@ -2,7 +2,7 @@
 
 All notable changes to the package will be documented in this file.
 
-## TBC
+## [v6.6.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.0) - 2024-02-19
 
 - Add optional `location` parameter value to `CreateParams` and return value to `AccountInfo`
   - Add logic to Enhance to select server group based on `location` parameter and return group name in `AccountInfo`
