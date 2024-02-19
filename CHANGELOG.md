@@ -8,6 +8,7 @@ All notable changes to the package will be documented in this file.
   - Add logic to Enhance to select server group based on `location` parameter and return group name in `AccountInfo`
   - Add logic to 20i to select data centre based on `location` parameter and return zone name in `AccountInfo`
 - Improve error messages for Enhance 409 "already_exists" errors
+- Add Enhance configuration value `create_subscription_only` to skip creating a website when calling `create()`
 
 ## [v6.5.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.2) - 2024-01-08
 
