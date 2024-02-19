@@ -164,7 +164,7 @@ class AccountInfo extends ResultData
      * @param string $location
      * @return $this
      */
-    public function setLocation(string $location): self
+    public function setLocation(?string $location): self
     {
         $this->setValue('location', $location);
         return $this;
