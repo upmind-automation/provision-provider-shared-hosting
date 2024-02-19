@@ -71,9 +71,14 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $this->errorResult('Domain name is required');
         }
 
+        if (!empty($params->location)) {
+            $locationId = $this->getLocationId($params->location);
+        }
+
         $hostingId = $this->api()->createPackage(
             $params->package_name,
             $params->domain,
+            $locationId ?? null,
             $customerId = $this->findOrCreateUser($params)
         );
 
@@ -252,6 +257,7 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setPackageName((string)$packageName)
             ->setSuspended($suspended)
             ->setSuspendReason($suspendReason)
+            ->setLocation($info->web->info->zone ?? null)
             ->setIp($ip);
     }
 
@@ -372,6 +378,29 @@ class Provider extends SharedHosting implements ProviderInterface
         $email = $this->getEmailPlusDomain($params->email, $params->domain);
 
         return $this->api()->createStackUser($email);
+    }
+
+    /**
+     * Get the location identifier for the given location id or name.
+     *
+     * @param string $location Id or name
+     *
+     * @return string Location identifier
+     */
+    protected function getLocationId(string $location): string
+    {
+        $location = trim($location);
+        $locations = $this->api()->listDataCentreLocations();
+
+        foreach ($locations as $key => $value) {
+            if ($location === trim($key) || $location === trim($value)) {
+                return $key;
+            }
+        }
+
+        throw $this->errorResult(sprintf('Location "%s" not found', $location), [
+            'available_locations' => $locations,
+        ]);
     }
 
     /**

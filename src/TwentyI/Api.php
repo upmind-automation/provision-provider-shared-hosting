@@ -228,19 +228,24 @@ class Api
      *
      * @param int|string $planId Stack cp plan id / reference
      * @param string $domain New hosting package domain name
+     * @param string $locationId Location/data-centre identifier
      * @param string|null $stackUser Stack user reference E.g., stack-user:1235
      *
-     * @throws ProvisionFunctionError If create request fails
+     * @throws ProvisionFunctionError|Throwable If create request fails
      *
      * @return int New hosting package id
      */
-    public function createPackage($planId, string $domain, ?string $stackUser = null): int
+    public function createPackage($planId, string $domain, ?string $locationId = null, ?string $stackUser = null): int
     {
         try {
             $params = [
                 'type' => $planId,
                 'domain_name' => $domain,
             ];
+
+            if (isset($locationId)) {
+                $params['location'] = $locationId;
+            }
 
             if (isset($stackUser)) {
                 $params['stackUser'] = $stackUser;
@@ -257,8 +262,24 @@ class Api
             return $this->handleException($e, 'Could not create new hosting package', [
                 'plan_id' => $planId,
                 'domain' => $domain,
+                'location' => $locationId,
                 'stack_user' => $stackUser,
             ]);
+        }
+    }
+
+
+    /**
+     * List available locations (data centres).
+     *
+     * @return array<string,string> Map of location ids to location names E.g. ['uk' => 'United Kingdom']
+     */
+    public function listDataCentreLocations()
+    {
+        try {
+            return $this->services->getWithFields('/reseller/*/availableDcLocations');
+        } catch (Throwable $e) {
+            return $this->handleException($e, 'Could not list data centre locations');
         }
     }
 

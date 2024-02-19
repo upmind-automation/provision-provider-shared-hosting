@@ -20,6 +20,8 @@ use Upmind\EnhanceSdk\Model\PhpVersion;
 use Upmind\EnhanceSdk\Model\Plan;
 use Upmind\EnhanceSdk\Model\ResourceName;
 use Upmind\EnhanceSdk\Model\Role;
+use Upmind\EnhanceSdk\Model\RoleInstallationState;
+use Upmind\EnhanceSdk\Model\ServerGroup;
 use Upmind\EnhanceSdk\Model\ServerIp;
 use Upmind\EnhanceSdk\Model\Status;
 use Upmind\EnhanceSdk\Model\UpdateSubscription;
@@ -81,6 +83,10 @@ class Provider extends Category implements ProviderInterface
         try {
             $plan = $this->findPlan($params->package_name);
 
+            if (!empty($params->location)) {
+                $serverGroupId = $this->findServerGroup(trim($params->location))->getId();
+            }
+
             if ($customerId = $params->customer_id) {
                 $email = $this->findOwnerMember($customerId, $params->email)->getEmail();
             } else {
@@ -99,7 +105,7 @@ class Provider extends Category implements ProviderInterface
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
 
             if ($domain) {
-                $this->createWebsite($customerId, $subscriptionId, $domain);
+                $this->createWebsite($customerId, $subscriptionId, $domain, $serverGroupId ?? null);
             }
 
             return $this->getSubscriptionInfo($customerId, $subscriptionId, $domain, $email)
@@ -370,6 +376,9 @@ class Provider extends Category implements ProviderInterface
         throw $this->errorResult('Customer not found', ['email' => $email]);
     }
 
+    /**
+     * @throws ApiException
+     */
     protected function getSubscriptionInfo(
         string $customerId,
         ?int $subscriptionId,
@@ -394,6 +403,12 @@ class Provider extends Category implements ProviderInterface
             return $ns->getDomain();
         }, $this->api()->branding()->getBranding($this->configuration->org_id)->getNameServers());
 
+        if ($website) {
+            if ($serverGroup = $this->findServerGroupByWebsite($website)) {
+                $location = $serverGroup->getName();
+            }
+        }
+
         return AccountInfo::create()
             ->setMessage('Subscription info obtained')
             ->setCustomerId($customerId)
@@ -405,10 +420,32 @@ class Provider extends Category implements ProviderInterface
             ->setSuspended(boolval($subscription->getSuspendedBy()))
             ->setIp($website ? implode(', ', $this->getWebsiteIps($website)) : null)
             ->setNameservers($nameservers)
+            ->setLocation($location ?? null)
             ->setDebug([
                 'website' => $website ? $website->jsonSerialize() : null,
                 'subscription' => $subscription->jsonSerialize(),
             ]);
+    }
+
+    /**
+     * Find the server group of the given Website.
+     *
+     * @param Website $website
+     */
+    protected function findServerGroupByWebsite(Website $website): ?ServerGroup
+    {
+        if (!$serverId = $website->getAppServerId()) {
+            return null;
+        }
+
+        $server = $this->api()->servers()->getServerInfo($serverId);
+        foreach ($this->api()->servers()->getServerGroups()->getItems() as $group) {
+            if ($group->getId() === $server->getGroupId()) {
+                return $group;
+            }
+        }
+
+        return null;
     }
 
     protected function getSubscriptionUsage(
@@ -704,11 +741,19 @@ class Provider extends Category implements ProviderInterface
     /**
      * Create a new website and return the id.
      */
-    protected function createWebsite(string $customerId, int $subscriptionId, string $domain): string
-    {
+    protected function createWebsite(
+        string $customerId,
+        int $subscriptionId,
+        string $domain,
+        ?string $serverGroupId = null
+    ): string {
         $newWebsite = (new NewWebsite())
             ->setSubscriptionId($subscriptionId)
             ->setDomain($domain);
+
+        if ($serverGroupId) {
+            $newWebsite->setServerGroupId($serverGroupId);
+        }
 
         return $this->api()->websites()
             ->createWebsite($customerId, $newWebsite)
@@ -819,6 +864,54 @@ class Provider extends Category implements ProviderInterface
             'customer_id' => $customerId,
             'website_id' => $websiteId,
         ]);
+    }
+
+
+    /**
+     * @param string $group Server group name or id
+     * @param bool $orFail Whether or not to throw an exception upon failure
+     */
+    protected function findServerGroup(string $location, bool $orFail = true): ?ServerGroup
+    {
+        // Get the available groups and check the given one exist
+        $groups = $this->api()->servers()->getServerGroups();
+
+        /** @var ServerGroup $validGroup */
+        $validGroup = null;
+        foreach ($groups->getItems() ?? [] as $group) {
+            if ($group->getId() === $location || $group->getName() === $location) {
+                $validGroup = $group;
+                break;
+            }
+        }
+
+        if (!isset($validGroup)) {
+            if ($orFail) {
+                throw $this->errorResult(sprintf('Server group "%s" not found', $location));
+            }
+
+            return null;
+        }
+
+        // Check the server group has at least one application server assigned
+        $servers = $this->api()->servers()->getServers();
+        foreach ($servers->getItems() as $server) {
+            if ($server->getGroupId() !== $validGroup->getId()) {
+                continue; // server not in group
+            }
+
+            if ($server->getRoles()->getApplication() !== RoleInstallationState::ENABLED) {
+                continue; // server not an application server
+            }
+
+            return $validGroup;
+        }
+
+        if ($orFail) {
+            throw $this->errorResult(sprintf('Server group %s has no application servers', $location));
+        }
+
+        return null;
     }
 
     /**
