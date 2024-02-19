@@ -22,6 +22,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string|null $ip Account ip address
  * @property-read string[]|null $nameservers
  * @property-read SoftwareInstallation|null $software
+ * @property-read string|null $location
  */
 class AccountInfo extends ResultData
 {
@@ -41,6 +42,7 @@ class AccountInfo extends ResultData
             'nameservers' => ['nullable', 'array'],
             'nameservers.*' => ['string'],
             'software' => ['nullable', SoftwareInstallation::class],
+            'location' => ['nullable', 'string']
         ]);
     }
 
@@ -155,6 +157,16 @@ class AccountInfo extends ResultData
     public function setSoftware($installation): self
     {
         $this->setValue('software', $installation);
+        return $this;
+    }
+
+    /**
+     * @param string $location
+     * @return $this
+     */
+    public function setLocation(string $location): self
+    {
+        $this->setValue('location', $location);
         return $this;
     }
 }
