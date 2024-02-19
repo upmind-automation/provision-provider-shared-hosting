@@ -42,7 +42,7 @@ class AccountInfo extends ResultData
             'nameservers' => ['nullable', 'array'],
             'nameservers.*' => ['string'],
             'software' => ['nullable', SoftwareInstallation::class],
-            'location' => ['nullable', 'string']
+            'location' => ['nullable', 'string'],
         ]);
     }
 

@@ -3,8 +3,11 @@
 All notable changes to the package will be documented in this file.
 
 ## TBC
-- Updated 20i create() method to include the location.
-- Updated the getInfo() method to return the location.
+
+- Updated 20i create() method to include the location
+- Updated the getInfo() method to return the location
+- Updated Enhance create() method to receive and optional location
+- Updated the method getInfo() to return the location id and name
 
 ## [v6.5.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.5.2) - 2024-01-08
 

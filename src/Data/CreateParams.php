@@ -22,7 +22,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read boolean|null $as_reseller Whether or not the new account should have reseller privileges
  * @property-read ResellerOptionParams|null $reseller_options Additional options for resellers
  * @property-read string|null $custom_ip Custom IP address for the new account
- * @property-read string|null $location location of the data center
+ * @property-read string|null $location Location of the account
  */
 class CreateParams extends DataSet
 {
