@@ -404,7 +404,7 @@ class Provider extends Category implements ProviderInterface
         }, $this->api()->branding()->getBranding($this->configuration->org_id)->getNameServers());
 
         if ($website) {
-            if ($serverGroup = $this->findServerGroupIdByWebsite($website)) {
+            if ($serverGroup = $this->findServerGroupByWebsite($website)) {
                 $location = $serverGroup->getName();
             }
         }
@@ -432,7 +432,7 @@ class Provider extends Category implements ProviderInterface
      *
      * @param Website $website
      */
-    protected function findServerGroupIdByWebsite(Website $website): ?ServerGroup
+    protected function findServerGroupByWebsite(Website $website): ?ServerGroup
     {
         if (!$serverId = $website->getAppServerId()) {
             return null;
