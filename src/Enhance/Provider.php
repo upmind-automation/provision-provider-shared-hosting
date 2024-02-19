@@ -20,6 +20,8 @@ use Upmind\EnhanceSdk\Model\PhpVersion;
 use Upmind\EnhanceSdk\Model\Plan;
 use Upmind\EnhanceSdk\Model\ResourceName;
 use Upmind\EnhanceSdk\Model\Role;
+use Upmind\EnhanceSdk\Model\RoleInstallationState;
+use Upmind\EnhanceSdk\Model\ServerGroup;
 use Upmind\EnhanceSdk\Model\ServerIp;
 use Upmind\EnhanceSdk\Model\Status;
 use Upmind\EnhanceSdk\Model\UpdateSubscription;
@@ -79,11 +81,11 @@ class Provider extends Category implements ProviderInterface
     public function create(CreateParams $params): AccountInfo
     {
         try {
-            if (!empty($params->location)) {
-                $location = $this->findLocation(trim($params->location));
-            }
-
             $plan = $this->findPlan($params->package_name);
+
+            if (!empty($params->location)) {
+                $serverGroupId = $this->findServerGroup(trim($params->location))->getId();
+            }
 
             if ($customerId = $params->customer_id) {
                 $email = $this->findOwnerMember($customerId, $params->email)->getEmail();
@@ -103,7 +105,7 @@ class Provider extends Category implements ProviderInterface
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
 
             if ($domain) {
-                $this->createWebsite($customerId, $subscriptionId, $domain, $location->id ?? '');
+                $this->createWebsite($customerId, $subscriptionId, $domain, $serverGroupId ?? null);
             }
 
             return $this->getSubscriptionInfo($customerId, $subscriptionId, $domain, $email)
@@ -401,8 +403,11 @@ class Provider extends Category implements ProviderInterface
             return $ns->getDomain();
         }, $this->api()->branding()->getBranding($this->configuration->org_id)->getNameServers());
 
-        $serverGroupId = $this->findServerGroupIdByWebsite($website);
-        $groupInfo = $this->findLocation($serverGroupId);
+        if ($website) {
+            if ($serverGroup = $this->findServerGroupIdByWebsite($website)) {
+                $location = $serverGroup->getName();
+            }
+        }
 
         return AccountInfo::create()
             ->setMessage('Subscription info obtained')
@@ -415,8 +420,7 @@ class Provider extends Category implements ProviderInterface
             ->setSuspended(boolval($subscription->getSuspendedBy()))
             ->setIp($website ? implode(', ', $this->getWebsiteIps($website)) : null)
             ->setNameservers($nameservers)
-            ->setLocationId($groupInfo->id)
-            ->setLocationName($groupInfo->name)
+            ->setLocation($location ?? null)
             ->setDebug([
                 'website' => $website ? $website->jsonSerialize() : null,
                 'subscription' => $subscription->jsonSerialize(),
@@ -424,25 +428,24 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
+     * Find the server group of the given Website.
+     *
      * @param Website $website
-     * @return string
-     * @throws ApiException
      */
-    protected function findServerGroupIdByWebsite(Website $website): string
+    protected function findServerGroupIdByWebsite(Website $website): ?ServerGroup
     {
-        $servers = $this->api()->servers()->getServers();
-        $websiteServerId = $website->getAppServerId();
-
-        if (empty($servers)) {
-            throw $this->errorResult('There was an error retrieving the server information.');
+        if (!$serverId = $website->getAppServerId()) {
+            return null;
         }
 
-        foreach ($servers->getItems() as $server) {
-            if (strcasecmp($websiteServerId, $server->getId()) === 0) {
-                return $server->getGroupId();
+        $server = $this->api()->servers()->getServerInfo($serverId);
+        foreach ($this->api()->servers()->getServerGroups()->getItems() as $group) {
+            if ($group->getId() === $server->getGroupId()) {
+                return $group;
             }
         }
-        throw $this->errorResult('There was an error trying to find the website server.');
+
+        return null;
     }
 
     protected function getSubscriptionUsage(
@@ -738,17 +741,18 @@ class Provider extends Category implements ProviderInterface
     /**
      * Create a new website and return the id.
      */
-    protected function createWebsite(string $customerId, int $subscriptionId, string $domain, string $location): string
-    {
-        if (!empty($location)) {
-            $newWebsite = (new NewWebsite())
-                ->setSubscriptionId($subscriptionId)
-                ->setServerGroupId($location)
-                ->setDomain($domain);
-        } else {
-            $newWebsite = (new NewWebsite())
-                ->setSubscriptionId($subscriptionId)
-                ->setDomain($domain);
+    protected function createWebsite(
+        string $customerId,
+        int $subscriptionId,
+        string $domain,
+        ?string $serverGroupId = null
+    ): string {
+        $newWebsite = (new NewWebsite())
+            ->setSubscriptionId($subscriptionId)
+            ->setDomain($domain);
+
+        if ($serverGroupId) {
+            $newWebsite->setServerGroupId($serverGroupId);
         }
 
         return $this->api()->websites()
@@ -862,6 +866,54 @@ class Provider extends Category implements ProviderInterface
         ]);
     }
 
+
+    /**
+     * @param string $group Server group name or id
+     * @param bool $orFail Whether or not to throw an exception upon failure
+     */
+    protected function findServerGroup(string $location, bool $orFail = true): ?ServerGroup
+    {
+        // Get the available groups and check the given one exist
+        $groups = $this->api()->servers()->getServerGroups();
+
+        /** @var ServerGroup $validGroup */
+        $validGroup = null;
+        foreach ($groups->getItems() ?? [] as $group) {
+            if ($group->getId() === $location || $group->getName() === $location) {
+                $validGroup = $group;
+                break;
+            }
+        }
+
+        if (!isset($validGroup)) {
+            if ($orFail) {
+                throw $this->errorResult(sprintf('Server group "%s" not found', $location));
+            }
+
+            return null;
+        }
+
+        // Check the server group has at least one application server assigned
+        $servers = $this->api()->servers()->getServers();
+        foreach ($servers->getItems() as $server) {
+            if ($server->getGroupId() !== $validGroup->getId()) {
+                continue; // server not in group
+            }
+
+            if ($server->getRoles()->getApplication() !== RoleInstallationState::ENABLED) {
+                continue; // server not an application server
+            }
+
+            return $validGroup;
+        }
+
+        if ($orFail) {
+            throw $this->errorResult(sprintf('Server group %s has no application servers', $location));
+        }
+
+        return null;
+    }
+
     /**
      * Returns a random password 15 chars long containing lower & uppercase alpha,
      * numeric and special characters.
@@ -971,42 +1023,5 @@ class Provider extends Category implements ProviderInterface
 
         // let the provision system handle this one
         throw $e;
-    }
-
-    /**
-     * @param string $location
-     * @return object
-     * @throws ApiException
-     */
-    protected function findLocation(string $location): object
-    {
-        // Get the available groups and check the given one exist
-        $validGroupId = '';
-        $groups = $this->api()->servers()->getServerGroups();
-
-        if (empty($groups->getItems())) {
-            throw $this->errorResult('There was a problem trying to retrieve the group list');
-        }
-
-        foreach ($groups->getItems() as $group) {
-            if ($group->getId() === $location || $group->getName() === $location) {
-                $validGroup = (object)[
-                    'id' => $group->getId(),
-                    'name' => $group->getName()
-                ];
-            }
-        }
-
-        // If the input is correct, check the value against the actual server group id
-        if (!empty($validGroup)) {
-            $servers = $this->api()->servers()->getServers();
-            foreach ($servers->getItems() as $server) {
-                if ($server->getGroupId() === $validGroup->id) {
-                    return $validGroup;
-                }
-            }
-            throw $this->errorResult('There location specified is not available');
-        }
-        throw $this->errorResult('There location specified is not valid');
     }
 }
