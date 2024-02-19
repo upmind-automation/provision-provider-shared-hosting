@@ -83,7 +83,7 @@ class Provider extends Category implements ProviderInterface
         try {
             $plan = $this->findPlan($params->package_name);
 
-            if (!empty($params->location)) {
+            if ($params->location && !$this->configuration->create_subscription_only) {
                 $serverGroupId = $this->findServerGroup(trim($params->location))->getId();
             }
 
@@ -104,12 +104,15 @@ class Provider extends Category implements ProviderInterface
 
             $subscriptionId = $this->createSubscription($customerId, $plan->getId());
 
-            if ($domain) {
+            if ($domain && !$this->configuration->create_subscription_only) {
                 $this->createWebsite($customerId, $subscriptionId, $domain, $serverGroupId ?? null);
             }
 
             return $this->getSubscriptionInfo($customerId, $subscriptionId, $domain, $email)
-                ->setMessage('Website Created');
+                ->setMessage(sprintf(
+                    '%s created',
+                    $this->configuration->create_subscription_only ? 'Subscription' : 'Website'
+                ));
         } catch (Throwable $e) {
             throw $this->handleException($e);
         }
