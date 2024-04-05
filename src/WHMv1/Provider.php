@@ -147,7 +147,11 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $username = $params->username ?: $this->generateUsername($params->domain);
         $password = $params->password ?: Helper::generatePassword();
-        $domain = $params->domain;
+        $domain = strtolower($params->domain ?? '');
+        if (Str::startsWith($domain, 'www.')) {
+            // remove www. prefix
+            $domain = substr($domain, 4);
+        }
         $contactemail = $params->email;
         $plan = $this->determinePackageName($params->package_name);
         $customip = $params->custom_ip;
@@ -183,7 +187,7 @@ class Provider extends SharedHosting implements ProviderInterface
             if ($this->exceptionWasTimeout($createException)) {
                 try {
                     // just in case WHM is running any weird post-create scripts, let's see if we can return success
-                    return $this->finishCreate($params, $username, $password)
+                    return $this->finishCreate($params, $domain, $username, $password)
                         ->setMessage('Account creation in progress')
                         ->setDebug([
                             'provider_exception' => ProviderResult::formatException(
@@ -202,10 +206,10 @@ class Provider extends SharedHosting implements ProviderInterface
             throw $createException;
         }
 
-        return $this->finishCreate($params, $username, $password);
+        return $this->finishCreate($params, $domain, $username, $password);
     }
 
-    protected function finishCreate(CreateParams $params, string $username, string $password): AccountInfo
+    protected function finishCreate(CreateParams $params, string $domain, string $username, string $password): AccountInfo
     {
         $info = $this->getAccountInfo($username)
             ->setMessage('Account created');
@@ -226,7 +230,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 $softaculous = $this->getSoftaculous($username, $password);
 
                 if ($this->configuration->softaculous_install === 'wordpress') {
-                    $installation = $softaculous->installWordpress($params->domain, $params->email);
+                    $installation = $softaculous->installWordpress($domain, $params->email);
                 }
 
                 $info->setSoftware($installation);
