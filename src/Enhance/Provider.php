@@ -5,8 +5,17 @@ declare(strict_types=1);
 namespace Upmind\ProvisionProviders\SharedHosting\Enhance;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\MessageFormatter;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Promise\Utils as PromiseUtils;
+use GuzzleHttp\Psr7\Message;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Psr\Http\Message\MessageInterface;
+use Psr\Log\LogLevel;
 use Throwable;
 use Upmind\EnhanceSdk\ApiException;
 use Upmind\EnhanceSdk\Model\DomainIp;
@@ -31,6 +40,7 @@ use Upmind\EnhanceSdk\Model\Website;
 use Upmind\EnhanceSdk\Model\WebsiteAppKind;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Helper;
+use Upmind\ProvisionBase\Provider\Contract\LogsDebugData;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
@@ -64,6 +74,13 @@ class Provider extends Category implements ProviderInterface
      * @var Api
      */
     protected $api;
+
+    /**
+     * Array containing the history of guzzle requests for this instance.
+     *
+     * @var array<Message[]>
+     */
+    protected $guzzleHistory = [];
 
     public static function aboutProvider(): AboutData
     {
@@ -1045,5 +1062,74 @@ class Provider extends Category implements ProviderInterface
 
         // let the provision system handle this one
         throw $e;
+    }
+
+    /**
+     * Get a guzzle handler stack which logs requests/responses if provider is
+     * an instance of LogsDebugData and $debugLog === true. Requests and responses
+     * will also be stored in $this->guzzleHistory.
+     */
+    protected function getGuzzleHandlerStack(bool $debugLog = false): HandlerStack
+    {
+        $stack = HandlerStack::create();
+
+        $stack->push(Middleware::history($this->guzzleHistory));
+
+        if (!$debugLog) {
+            return $stack;
+        }
+
+        // Rewinds HTTP message body seek position after the stream has been read by Logger middleware
+        $rewindMessageBody = function (MessageInterface $message) {
+            $message->getBody()->rewind();
+            return $message;
+        };
+        // Logs Request/Response HTTP messages
+        $logger = Middleware::log(
+            $this->getLogger(),
+            new MessageFormatter(MessageFormatter::DEBUG . PHP_EOL),
+            LogLevel::DEBUG
+        );
+
+        $stack->push(Middleware::mapRequest($rewindMessageBody), 'Rewind-Request-Stream-After-Logging');
+        $stack->push(Middleware::mapResponse($rewindMessageBody), 'Rewind-Response-Stream-After-Logging');
+        $stack->push($logger, 'Logger');
+
+        return $stack;
+    }
+
+    /**
+     * Returns an assoc array of debug data for the last guzzle request/response
+     * for guzzle clients whose stack was obtained from `$this->getGuzzleHandlerStack()`.
+     *
+     * @return array<array<string[]>>|null
+     */
+    protected function getLastGuzzleRequestDebug(): ?array
+    {
+        /** @var Request|null $lastRequest */
+        $lastRequest = Arr::last($this->guzzleHistory)['request'] ?? null;
+        /** @var Response|null $lastResponse */
+        $lastResponse = Arr::last($this->guzzleHistory)['response'] ?? null;
+
+        if (!$lastRequest) {
+            return null;
+        }
+
+        $debug = [
+            'last_request' => [
+                'method' => $lastRequest->getMethod(),
+                'url' => $lastRequest->getUri()->__toString(),
+            ],
+            'last_response' => null
+        ];
+
+        if ($lastResponse) {
+            $debug['last_response'] = [
+                'http_code' => $lastResponse->getStatusCode(),
+                'body' => Str::limit($lastResponse->getBody()->__toString(), 300),
+            ];
+        }
+
+        return $debug;
     }
 }
