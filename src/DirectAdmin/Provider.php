@@ -287,21 +287,19 @@ class Provider extends Category implements ProviderInterface
      */
     protected function handleException(Throwable $e): void
     {
-        if ($e instanceof ServerException) {
-            if ($e->hasResponse()) {
-                $response = $e->getResponse();
-                $reason = $response->getReasonPhrase();
-                $responseBody = $response->getBody()->__toString();
-                $responseData = json_decode($responseBody, true);
-                $errorMessage = $responseData['error'] . '. ' . $responseData['result'];
+        if (($e instanceof ServerException) && $e->hasResponse()) {
+            $response = $e->getResponse();
+            $reason = $response->getReasonPhrase();
+            $responseBody = $response->getBody()->__toString();
+            $responseData = json_decode($responseBody, true);
+            $errorMessage = $responseData['error'] . '. ' . $responseData['result'];
 
-                $this->errorResult(
-                    sprintf('Provider API error: %s', $errorMessage ?? $reason ?? null),
-                    [],
-                    ['response_data' => $responseData ?? null],
-                    $e
-                );
-            }
+            $this->errorResult(
+                sprintf('Provider API error: %s', $errorMessage ?? $reason ?? null),
+                [],
+                ['response_data' => $responseData ?? null],
+                $e
+            );
         }
 
         // let the provision system handle this one
