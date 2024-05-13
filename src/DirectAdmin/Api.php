@@ -4,14 +4,8 @@ declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\DirectAdmin;
 
-use ErrorException;
-use Illuminate\Support\Arr;
-use Psr\Log\LoggerInterface;
 use GuzzleHttp\Client;
 use Upmind\ProvisionBase\Helper;
-use Throwable;
-use RuntimeException;
-use Illuminate\Support\Str;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\UnitsConsumed;
 use Upmind\ProvisionProviders\SharedHosting\Data\UsageData;
@@ -41,6 +35,9 @@ class Api
         $this->configuration = $configuration;
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function makeRequest(
         string  $command,
         ?array  $params = null,
@@ -90,6 +87,9 @@ class Api
         return $parsedResult;
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function createAccount(CreateParams $params, string $username, bool $asReseller, string $customIp): void
     {
         $password = $params->password ?: Helper::generatePassword();
@@ -110,6 +110,9 @@ class Api
         $this->makeRequest($command, null, $query, self::METHOD_POST);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function getAccountData(string $username): array
     {
         $account = $this->getUserConfig($username);
@@ -127,11 +130,17 @@ class Api
         ];
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function getUserConfig(string $username): array
     {
         return $this->makeRequest(self::COMMAND_SHOW_INFO, ['user' => $username]);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function suspendAccount(string $username): void
     {
         $query = [
@@ -142,6 +151,9 @@ class Api
         $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function unsuspendAccount(string $username): void
     {
         $query = [
@@ -152,6 +164,9 @@ class Api
         $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function deleteAccount(string $username): void
     {
         $query = [
@@ -163,6 +178,9 @@ class Api
         $this->makeRequest(self::COMMAND_SELECT_USERS, $query, null, self::METHOD_POST);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function updatePassword(string $username, string $password): void
     {
         $body = [
@@ -174,7 +192,10 @@ class Api
         $this->makeRequest(self::COMMAND_USER_PASSWORD, null, $body, self::METHOD_POST);
     }
 
-    public function updatePackage(string $username, string $package_name)
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function updatePackage(string $username, string $package_name): void
     {
         $account = $this->getUserConfig($username);
         $asReseller = $account['usertype'] === 'reseller';
@@ -189,21 +210,24 @@ class Api
         $this->makeRequest($command, $query, null, self::METHOD_POST);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function getAccountUsage(string $username): UsageData
     {
         $usage = $this->makeRequest(self::COMMAND_SHOW_USER_USAGE, ['user' => $username]);
         $config = $this->getUserConfig($username);
 
         $disk = UnitsConsumed::create()
-            ->setUsed((float)$usage['quota'] ?? null)
+            ->setUsed(isset($usage['quota']) ? ((float) $usage['quota']) : null)
             ->setLimit($config['quota'] === 'unlimited' ? null : $config['quota']);
 
         $bandwidth = UnitsConsumed::create()
-            ->setUsed((float)$usage['bandwidth'] ?? null)
+            ->setUsed(isset($usage['bandwidth']) ? ((float) $usage['bandwidth']) : null)
             ->setLimit($config['bandwidth'] === 'unlimited' ? null : $config['bandwidth']);
 
         $inodes = UnitsConsumed::create()
-            ->setUsed((float)$usage['inode'] ?? null)
+            ->setUsed(isset($usage['inode']) ? ((float) $usage['inode']) : null)
             ->setLimit($config['inode'] === 'unlimited' ? null : $config['inode']);
 
         return UsageData::create()
@@ -212,6 +236,9 @@ class Api
             ->setInodes($inodes);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function getLoginUrl(string $username, string $ip): string
     {
         $this->getUserConfig($username);
@@ -241,6 +268,9 @@ class Api
         return $response['result'];
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function freeIpList(string $ipStatus): string
     {
         $ipList = $this->makeRequest(self::COMMAND_FREE_IPS);
