@@ -292,10 +292,21 @@ class Provider extends Category implements ProviderInterface
             $reason = $response->getReasonPhrase();
             $responseBody = $response->getBody()->__toString();
             $responseData = json_decode($responseBody, true);
-            $errorMessage = $responseData['error'] . '. ' . $responseData['result'];
+
+            $errorMessage = null;
+
+            // If we have an error key in the response data, use it as the error message.
+            if (isset($responseData['error'])) {
+                $errorMessage = $responseData['error'] . '. ' . ($responseData['result'] ?? 'N/A Response Result');
+            }
+
+            // If still null, set the reason from response reason phrase.
+            if ($errorMessage === null) {
+                $errorMessage = $reason;
+            }
 
             $this->errorResult(
-                sprintf('Provider API error: %s', $errorMessage ?? $reason ?? null),
+                sprintf('Provider API error: %s', $errorMessage ?? null),
                 [],
                 ['response_data' => $responseData ?? null],
                 $e
