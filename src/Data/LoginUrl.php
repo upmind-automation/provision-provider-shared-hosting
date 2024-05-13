@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\Data;
 
-use Carbon\Carbon;
 use DateTime;
 use Upmind\ProvisionBase\Provider\DataSet\ResultData;
 use Upmind\ProvisionBase\Provider\DataSet\Rules;
@@ -48,11 +47,11 @@ class LoginUrl extends ResultData
     }
 
     /**
-     * @param Carbon|DateTime $expires Datetime the link expires
+     * @param DateTime|null $expires Datetime the link expires
      */
     public function setExpires(?DateTime $expires): self
     {
-        $this->setValue('expires', $expires ? $expires->format('Y-m-d H:i:s') : null);
+        $this->setValue('expires', $expires?->format('Y-m-d H:i:s'));
         return $this;
     }
 

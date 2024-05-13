@@ -119,7 +119,7 @@ class AccountInfo extends ResultData
     }
 
     /**
-     * @param string $reason Reason for suspension
+     * @param string|null $reason Reason for suspension
      */
     public function setSuspendReason(?string $reason): self
     {
@@ -137,7 +137,7 @@ class AccountInfo extends ResultData
     }
 
     /**
-     * @param string[]|null[]|null
+     * @param string[]|null[]|null $nameservers
      */
     public function setNameservers(?array $nameservers): self
     {
@@ -161,7 +161,7 @@ class AccountInfo extends ResultData
     }
 
     /**
-     * @param string $location
+     * @param string|null $location
      * @return $this
      */
     public function setLocation(?string $location): self
