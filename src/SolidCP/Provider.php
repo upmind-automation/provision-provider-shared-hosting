@@ -364,6 +364,6 @@ class Provider extends Category implements ProviderInterface
 
     protected function api(): Api
     {
-        return $this->api ??= new Api($this->configuration, $this->getLogger((bool)$this->configuration->debug));
+        return $this->api ??= new Api($this->configuration, $this->getLogger());
     }
 }

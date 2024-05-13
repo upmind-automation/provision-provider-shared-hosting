@@ -426,7 +426,7 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         return $this->api = ($this->api = new Api(
             $this->configuration->general_api_key,
-            $this->configuration->debug ? $this->getLogger() : null
+            $this->getLogger()
         ));
     }
 }

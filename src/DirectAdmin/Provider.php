@@ -293,7 +293,7 @@ class Provider extends Category implements ProviderInterface
             'timeout' => 60,
             'http_errors' => true,
             'allow_redirects' => false,
-            'handler' => $this->getGuzzleHandlerStack(!!$this->configuration->debug),
+            'handler' => $this->getGuzzleHandlerStack(),
         ]);
 
         return $this->api = new Api($client, $this->configuration);

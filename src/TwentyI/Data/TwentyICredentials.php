@@ -19,7 +19,6 @@ class TwentyICredentials extends DataSet
     {
         return new Rules([
             'general_api_key' => ['required', 'string'],
-            'debug' => ['boolean'],
         ]);
     }
 }

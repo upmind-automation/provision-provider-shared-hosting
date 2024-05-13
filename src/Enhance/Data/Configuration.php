@@ -17,7 +17,6 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read bool|null $ignore_ssl_errors When set to true, SSL will not be verified
  * @property-read bool|null $create_subscription_only When enabled, create() creates a subscription without creating a website
  * @property-read bool $remove_www Whether or not to strip www. from domain names when creating new subscriptions
- * @property-read bool|null $debug Whether or not to enable debug logging of API requests
  */
 class Configuration extends DataSet
 {
@@ -31,7 +30,6 @@ class Configuration extends DataSet
             'ignore_ssl_errors' => ['boolean'],
             'create_subscription_only' => ['boolean'],
             'remove_www' => ['boolean'],
-            'debug' => ['boolean'],
         ]);
     }
 }

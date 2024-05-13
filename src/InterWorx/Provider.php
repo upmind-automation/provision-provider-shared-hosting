@@ -331,7 +331,6 @@ class Provider extends Category implements ProviderInterface
             return $this->api;
         }
 
-        $logger = $this->configuration->debug ? $this->getLogger() : null;
-        return $this->api = new Api($this->configuration, $logger);
+        return $this->api = new Api($this->configuration, $this->getLogger());
     }
 }

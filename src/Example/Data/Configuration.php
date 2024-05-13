@@ -12,7 +12,6 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  *
  * @property-read string $hostname Example server hostname
  * @property-read string $api_token API token
- * @property-read bool $debug Whether or not to log API requests and responses
  */
 class Configuration extends DataSet
 {
@@ -21,7 +20,6 @@ class Configuration extends DataSet
         return new Rules([
             'hostname' => ['required', 'domain_name'],
             'api_token' => ['required', 'string'],
-            'debug' => ['boolean'],
         ]);
     }
 }

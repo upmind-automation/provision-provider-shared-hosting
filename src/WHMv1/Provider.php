@@ -922,7 +922,7 @@ class Provider extends SharedHosting implements ProviderInterface
     protected function getSoftaculous(string $username, string $password): SoftaculousSdk
     {
         return new SoftaculousSdk($username, $password, $this->configuration, new Client([
-            'handler' => $this->getGuzzleHandlerStack(!!$this->configuration->debug),
+            'handler' => $this->getGuzzleHandlerStack(),
         ]));
     }
 
@@ -949,7 +949,7 @@ class Provider extends SharedHosting implements ProviderInterface
             'timeout' => 60,
             'http_errors' => true,
             'allow_redirects' => false,
-            'handler' => $this->getGuzzleHandlerStack(!!$this->configuration->debug),
+            'handler' => $this->getGuzzleHandlerStack(),
         ]);
     }
 }
