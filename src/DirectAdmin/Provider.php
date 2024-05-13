@@ -37,7 +37,7 @@ class Provider extends Category implements ProviderInterface
     protected const STATUS_LIST = ['server', 'shared', 'free'];
 
     /**
-     * @var Api
+     * @var Api|null
      */
     protected $api;
 

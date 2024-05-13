@@ -6,15 +6,15 @@ services:
     build:
       context: .
       dockerfile: ./.docker/Dockerfile
-    container_name: app
+    container_name: provision-provider-shared-hosting-lib
     restart: unless-stopped
     tty: true
     environment:
       SERVICE_NAME: app
       SERVICE_TAGS: dev
-    working_dir: /usr/src/lib
+    working_dir: /usr/src/provision-provider-shared-hosting-lib
     volumes:
-      - ./:/usr/src/lib
+      - ./:/usr/src/provision-provider-shared-hosting-lib
     networks:
       - app-network
 
