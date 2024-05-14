@@ -26,14 +26,14 @@ setup-php83: stop-containers --prep-dockerfile-php83 start-containers --remove-p
 
 # Get a shell on the PHP container
 shell:
-	docker compose exec -it app /bin/bash
+	docker compose exec -it provision-provider-shared-hosting /bin/bash
 
 # Run Static Analysis (PHPStan)
 static-analysis:
-	docker compose exec app ./vendor/bin/phpstan analyse --memory-limit=1G
+	docker compose exec provision-provider-shared-hosting ./vendor/bin/phpstan analyse --memory-limit=1G
 
 coding-standards:
-	docker compose exec app php ./bin/php-cs-fixer-v3.phar fix --config=./.php-cs-fixer.dist.php
+	docker compose exec provision-provider-shared-hosting php ./bin/php-cs-fixer-v3.phar fix --config=./.php-cs-fixer.dist.php
 
 # Start the dev environment
 start-containers:
@@ -50,7 +50,7 @@ kill-containers:
 
 # Install composer dependencies
 composer-install:
-	docker compose exec app composer install --no-interaction
+	docker compose exec provision-provider-shared-hosting composer install --no-interaction
 
 # Copy Dockerfile for PHP 8.1
 --prep-dockerfile-php81: --remove-dockerfile --prep-docker-compose-file
@@ -77,8 +77,8 @@ composer-install:
 
 # Remove composer.lock file
 --remove-lockfile:
-	docker compose exec app rm -f ./composer.lock
+	docker compose exec provision-provider-shared-hosting rm -f ./composer.lock
 
 # Remove vendor directory
 --remove-vendor:
-	docker compose exec app rm -rf ./vendor
+	docker compose exec provision-provider-shared-hosting rm -rf ./vendor

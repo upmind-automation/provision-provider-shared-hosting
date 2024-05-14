@@ -2,23 +2,22 @@ version: '3.3'
 services:
 
   #PHP Service
-  app:
+  provision-provider-shared-hosting:
     build:
       context: .
       dockerfile: ./.docker/Dockerfile
-    container_name: provision-provider-shared-hosting-lib
-    restart: unless-stopped
+    container_name: provision-provider-shared-hosting
     tty: true
     environment:
-      SERVICE_NAME: app
+      SERVICE_NAME: provision-provider-shared-hosting
       SERVICE_TAGS: dev
-    working_dir: /usr/src/provision-provider-shared-hosting-lib
+    working_dir: /usr/src/lib
     volumes:
-      - ./:/usr/src/provision-provider-shared-hosting-lib
+      - ./:/usr/src/lib
     networks:
-      - app-network
+      - provision-provider-shared-hosting-network
 
 #Docker Networks
 networks:
-  app-network:
+  provision-provider-shared-hosting-network:
     driver: bridge
