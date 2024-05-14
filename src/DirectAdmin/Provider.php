@@ -60,6 +60,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -111,6 +112,7 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function _getInfo(string $username, string $message): AccountInfo
     {
@@ -122,6 +124,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -138,6 +141,7 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -156,6 +160,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -176,6 +181,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -193,6 +199,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -213,6 +220,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -230,6 +238,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -247,6 +256,7 @@ class Provider extends Category implements ProviderInterface
     /**
      * @inheritDoc
      *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -342,6 +352,7 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function freeIpByPriority(string $ipStatus): string
     {

@@ -37,6 +37,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function makeRequest(
         string  $command,
@@ -73,6 +74,9 @@ class Api
         return $this->parseResponseData($result);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     private function parseResponseData(string $response): array
     {
         $parsedResult = json_decode($response, true);
@@ -89,6 +93,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function createAccount(CreateParams $params, string $username, bool $asReseller, string $customIp): void
     {
@@ -112,6 +117,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function getAccountData(string $username): array
     {
@@ -132,6 +138,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function getUserConfig(string $username): array
     {
@@ -140,6 +147,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function suspendAccount(string $username): void
     {
@@ -153,6 +161,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function unsuspendAccount(string $username): void
     {
@@ -166,6 +175,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function deleteAccount(string $username): void
     {
@@ -180,6 +190,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function updatePassword(string $username, string $password): void
     {
@@ -194,6 +205,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function updatePackage(string $username, string $package_name): void
     {
@@ -212,6 +224,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function getAccountUsage(string $username): UsageData
     {
@@ -238,6 +251,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function getLoginUrl(string $username, string $ip): string
     {
@@ -270,6 +284,7 @@ class Api
 
     /**
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function freeIpList(string $ipStatus): string
     {
