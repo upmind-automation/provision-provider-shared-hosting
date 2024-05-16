@@ -68,7 +68,7 @@ class Provider extends Category implements ProviderInterface
     protected $meta;
 
     /**
-     * @var Api
+     * @var Api|null
      */
     protected $api;
 
@@ -92,6 +92,11 @@ class Provider extends Category implements ProviderInterface
         $this->configuration = $configuration;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function create(CreateParams $params): AccountInfo
     {
         try {
@@ -144,15 +149,20 @@ class Provider extends Category implements ProviderInterface
                 }
             }
 
-            throw $this->handleException($e, $errorData ?? []);
+            $this->handleException($e, $errorData ?? []);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function suspend(SuspendParams $params): AccountInfo
     {
         try {
             if (!$params->subscription_id) {
-                throw $this->errorResult('Subscription ID is required');
+                $this->errorResult('Subscription ID is required');
             }
 
             $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
@@ -176,15 +186,20 @@ class Provider extends Category implements ProviderInterface
             return $info->setMessage('Subscription suspended')
                 ->setSuspendReason($params->reason);
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         try {
             if (!$params->subscription_id) {
-                throw $this->errorResult('Subscription ID is required');
+                $this->errorResult('Subscription ID is required');
             }
 
             $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
@@ -208,15 +223,20 @@ class Provider extends Category implements ProviderInterface
             return $info->setMessage('Subscription unsuspended')
                 ->setSuspendReason(null);
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function terminate(AccountUsername $params): EmptyResult
     {
         try {
             if (!$params->subscription_id) {
-                throw $this->errorResult('Subscription ID is required');
+                $this->errorResult('Subscription ID is required');
             }
 
             $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
@@ -226,10 +246,15 @@ class Provider extends Category implements ProviderInterface
 
             return $this->emptyResult('Subscription deleted');
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function getInfo(AccountUsername $params): AccountInfo
     {
         try {
@@ -243,10 +268,15 @@ class Provider extends Category implements ProviderInterface
                 $params->username
             );
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
         try {
@@ -260,10 +290,15 @@ class Provider extends Category implements ProviderInterface
                 $params->username
             );
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         try {
@@ -275,15 +310,20 @@ class Provider extends Category implements ProviderInterface
             return LoginUrl::create()
                 ->setLoginUrl($loginUrl);
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
         try {
             if (!$params->customer_id) {
-                throw $this->errorResult('Customer ID is required');
+                $this->errorResult('Customer ID is required');
             }
 
             $owner = $this->findOwnerMember($params->customer_id, $params->username);
@@ -295,15 +335,20 @@ class Provider extends Category implements ProviderInterface
 
             return $this->emptyResult('Password reset initiated - please check your email');
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
+     */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
         try {
             if (!$params->subscription_id) {
-                throw $this->errorResult('Subscription ID is required');
+                $this->errorResult('Subscription ID is required');
             }
 
             $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
@@ -328,18 +373,24 @@ class Provider extends Category implements ProviderInterface
 
             return $info->setMessage('Subscription plan updated');
         } catch (Throwable $e) {
-            throw $this->handleException($e);
+            $this->handleException($e);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
     /**
@@ -355,12 +406,12 @@ class Provider extends Category implements ProviderInterface
     /**
      * Assert that this configuration's Enhance CP is the given version or greater.
      *
-     * @throws ProvisionFunctionError
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function requireEnhanceVersion(string $requireVersion, string $operation = 'this operation'): void
     {
         if (!$this->isEnhanceVersion($requireVersion)) {
-            throw $this->errorResult(
+            $this->errorResult(
                 sprintf('Control panel v%s is required for %s', $requireVersion, $operation)
             );
         }
@@ -390,6 +441,11 @@ class Provider extends Category implements ProviderInterface
             ->wait();
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function findCustomerIdByEmail(string $email): string
     {
         $offset = 0;
@@ -406,11 +462,13 @@ class Provider extends Category implements ProviderInterface
             }
         } while ($offset + $limit < $customers->getTotal());
 
-        throw $this->errorResult('Customer not found', ['email' => $email]);
+        $this->errorResult('Customer not found', ['email' => $email]);
     }
 
     /**
-     * @throws ApiException
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
      */
     protected function getSubscriptionInfo(
         string $customerId,
@@ -429,7 +487,7 @@ class Provider extends Category implements ProviderInterface
             ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
 
         if ($subscription->getStatus() === Status::DELETED) {
-            throw $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
+            $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
         }
 
         $nameservers = array_map(function (DomainIp $ns) {
@@ -463,7 +521,8 @@ class Provider extends Category implements ProviderInterface
     /**
      * Find the server group of the given Website.
      *
-     * @param Website $website
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \InvalidArgumentException
      */
     protected function findServerGroupByWebsite(Website $website): ?ServerGroup
     {
@@ -481,6 +540,11 @@ class Provider extends Category implements ProviderInterface
         return null;
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function getSubscriptionUsage(
         string $customerId,
         ?int $subscriptionId,
@@ -499,7 +563,7 @@ class Provider extends Category implements ProviderInterface
             ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
 
         if ($subscription->getStatus() === Status::DELETED) {
-            throw $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
+            $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
         }
 
         $usage = array_reduce($subscription->getResources(), function (array $usage, UsedResource $resource) {
@@ -554,6 +618,11 @@ class Provider extends Category implements ProviderInterface
         ]);
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function findWebsite(
         string $customerId,
         ?int $subscriptionId = null,
@@ -561,7 +630,7 @@ class Provider extends Category implements ProviderInterface
         bool $orFail = true
     ): ?Website {
         if (!$subscriptionId && !$domain) {
-            throw $this->errorResult('Website domain name is required without subscription id');
+            $this->errorResult('Website domain name is required without subscription id');
         }
 
         $result = $this->api()->websites()->getWebsites(
@@ -587,7 +656,7 @@ class Provider extends Category implements ProviderInterface
                 return null;
             }
 
-            throw $this->errorResult('Unable to get customer websites', $this->getLastGuzzleRequestDebug());
+            $this->errorResult('Unable to get customer websites', $this->getLastGuzzleRequestDebug());
         }
 
         $websites = $result->getItems();
@@ -602,7 +671,7 @@ class Provider extends Category implements ProviderInterface
                     return null;
                 }
 
-                throw $this->errorResult(sprintf('Found %s websites for the given domain', count($websites)), [
+                $this->errorResult(sprintf('Found %s websites for the given domain', count($websites)), [
                     'customer_id' => $customerId,
                     'subscription_id' => $subscriptionId,
                     'domain' => $domain,
@@ -621,6 +690,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @return string[]
+     *
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \InvalidArgumentException
      */
     public function getWebsiteIps(Website $website): array
     {
@@ -657,6 +729,10 @@ class Provider extends Category implements ProviderInterface
     /**
      * Finds the owner member of the given customer id, preferring the given
      * email if it exists.
+     *
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
      */
     protected function findOwnerMember(string $customerId, ?string $email = null): Member
     {
@@ -693,7 +769,7 @@ class Provider extends Category implements ProviderInterface
         }
 
         if (is_null($firstMember)) {
-            throw $this->errorResult('Customer login not found', [
+            $this->errorResult('Customer login not found', [
                 'customer_id' => $customerId,
             ]);
         }
@@ -703,6 +779,11 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * Create a new customer org, login and owner membership and return the customer id.
+     *
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     * @throws \Throwable
      */
     protected function createCustomer(string $name, string $email, string $password): string
     {
@@ -712,7 +793,7 @@ class Provider extends Category implements ProviderInterface
             ->createCustomer($this->configuration->org_id, $newCustomer);
 
         if (!$customerId = $customer->getId()) {
-            throw $this->errorResult('Failed to create new customer', $this->getLastGuzzleRequestDebug() ?? []);
+            $this->errorResult('Failed to create new customer', $this->getLastGuzzleRequestDebug() ?? []);
         }
 
         try {
@@ -738,7 +819,7 @@ class Provider extends Category implements ProviderInterface
                     }
                 }
 
-                throw $this->handleException(
+                $this->handleException(
                     $e,
                     ['new_customer_id' => $customerId, 'email' => $email],
                     [],
@@ -760,6 +841,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * Create a new subscription and return the id.
+     *
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \InvalidArgumentException
      */
     protected function createSubscription(string $customerId, int $planId): int
     {
@@ -773,6 +857,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * Create a new website and return the id.
+     *
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \InvalidArgumentException
      */
     protected function createWebsite(
         string $customerId,
@@ -793,6 +880,11 @@ class Provider extends Category implements ProviderInterface
             ->getId();
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function findPlan(string $packageName): Plan
     {
         if (is_numeric($packageName = trim($packageName))) {
@@ -816,7 +908,7 @@ class Provider extends Category implements ProviderInterface
             }
 
             if ($plans->getTotal() <= ($offset + $limit)) {
-                throw $this->errorResult('Plan not found', [
+                $this->errorResult('Plan not found', [
                     'plan' => $packageName,
                 ]);
             }
@@ -825,6 +917,11 @@ class Provider extends Category implements ProviderInterface
         }
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function getSsoUrl(string $customerId, ?int $subscriptionId = null, ?string $domain = null): string
     {
         if ($website = $this->findWebsite($customerId, $subscriptionId, $domain ?: null, false)) {
@@ -835,7 +932,7 @@ class Provider extends Category implements ProviderInterface
             $this->requireEnhanceVersion('8.0.0', 'wordpress login');
 
             if (!$websiteId) {
-                throw $this->errorResult('Website not found', [
+                $this->errorResult('Website not found', [
                     'customer_id' => $customerId,
                     'subscription_id' => $subscriptionId,
                 ]);
@@ -847,6 +944,11 @@ class Provider extends Category implements ProviderInterface
         return $this->getEnhanceLoginUrl($customerId, $websiteId ?? null);
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function getEnhanceLoginUrl(string $customerId, ?string $websiteId = null): string
     {
         if (!$this->isEnhanceVersion('8.2.0')) {
@@ -859,6 +961,11 @@ class Provider extends Category implements ProviderInterface
         return json_decode($url) ?? $url;
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function getWordpressLoginUrl(string $customerId, string $websiteId): string
     {
         $appId = $this->getWordpressAppId($customerId, $websiteId);
@@ -883,6 +990,11 @@ class Provider extends Category implements ProviderInterface
         return json_decode($loginUrl) ?? $loginUrl; // in-case it's returned as a JSON string
     }
 
+    /**
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
+     */
     protected function getWordpressAppId(string $customerId, string $websiteId): string
     {
         $apps = $this->api()->apps()->getWebsiteApps($customerId, $websiteId);
@@ -893,7 +1005,7 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        throw $this->errorResult('Website does not have Wordpress installed', [
+        $this->errorResult('Website does not have Wordpress installed', [
             'customer_id' => $customerId,
             'website_id' => $websiteId,
         ]);
@@ -901,8 +1013,12 @@ class Provider extends Category implements ProviderInterface
 
 
     /**
-     * @param string $group Server group name or id
+     * @param string $location Server group name or id
      * @param bool $orFail Whether or not to throw an exception upon failure
+     *
+     * @throws \Upmind\EnhanceSdk\ApiException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \InvalidArgumentException
      */
     protected function findServerGroup(string $location, bool $orFail = true): ?ServerGroup
     {
@@ -920,7 +1036,7 @@ class Provider extends Category implements ProviderInterface
 
         if (!isset($validGroup)) {
             if ($orFail) {
-                throw $this->errorResult(sprintf('Server group "%s" not found', $location));
+                $this->errorResult(sprintf('Server group "%s" not found', $location));
             }
 
             return null;
@@ -941,7 +1057,7 @@ class Provider extends Category implements ProviderInterface
         }
 
         if ($orFail) {
-            throw $this->errorResult(sprintf('Server group %s has no application servers', $location));
+            $this->errorResult(sprintf('Server group %s has no application servers', $location));
         }
 
         return null;
@@ -988,8 +1104,8 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
-     * @throws ProvisionFunctionError
-     * @throws Throwable
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function handleException(Throwable $e, array $data = [], array $debug = [], ?string $message = null): void
     {
@@ -1054,7 +1170,7 @@ class Provider extends Category implements ProviderInterface
                 $debug['response_body'] = $responseBody;
             }
 
-            throw $this->errorResult($message, $data, $debug, $e);
+            $this->errorResult($message, $data, $debug, $e);
         }
 
         // let the provision system handle this one
@@ -1100,6 +1216,7 @@ class Provider extends Category implements ProviderInterface
      * for guzzle clients whose stack was obtained from `$this->getGuzzleHandlerStack()`.
      *
      * @return array<array<string[]>>|null
+     * @throws \Throwable
      */
     protected function getLastGuzzleRequestDebug(): ?array
     {
