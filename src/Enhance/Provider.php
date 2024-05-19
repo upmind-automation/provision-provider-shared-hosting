@@ -631,6 +631,7 @@ class Provider extends Category implements ProviderInterface
             $this->errorResult('Website domain name is required without subscription id');
         }
 
+        /** @var false|null|\Upmind\EnhanceSdk\Model\WebsitesListing $result */
         $result = $this->api()->websites()->getWebsites(
             $customerId,
             null,
