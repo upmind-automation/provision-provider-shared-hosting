@@ -292,6 +292,8 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
+     * @return no-return
+     *
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
@@ -316,7 +318,7 @@ class Provider extends Category implements ProviderInterface
             }
 
             $this->errorResult(
-                sprintf('Provider API error: %s', $errorMessage ?? null),
+                sprintf('Provider API error: %s', empty($errorMessage) ? null : $errorMessage),
                 [],
                 ['response_data' => $responseData ?? null],
                 $e
