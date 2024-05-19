@@ -554,8 +554,10 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        $subscription = $this->api()->subscriptions()
-            ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
+        $subscription = $this->api()->subscriptions()->getSubscription(
+            $customerId,
+                !$subscriptionId ? $website->getSubscriptionId() : $subscriptionId
+        );
 
         if ($subscription->getStatus() == Status::DELETED) {
             $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
@@ -617,6 +619,7 @@ class Provider extends Category implements ProviderInterface
      * @throws \Upmind\EnhanceSdk\ApiException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \InvalidArgumentException
+     * @throws \Throwable
      */
     protected function findWebsite(
         string $customerId,
@@ -674,10 +677,11 @@ class Provider extends Category implements ProviderInterface
             }
         }
 
-        /** @var Website $website */
         if (!$website = Arr::first($websites)) {
             return null;
         }
+
+        /** @var Website $website */
 
         // get website again to receive full object including IPs
         return $this->api()->websites()->getWebsite($customerId, $website->getId());
@@ -916,6 +920,7 @@ class Provider extends Category implements ProviderInterface
      * @throws \Upmind\EnhanceSdk\ApiException
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \InvalidArgumentException
+     * @throws \Throwable
      */
     protected function getSsoUrl(string $customerId, ?int $subscriptionId = null, ?string $domain = null): string
     {
@@ -926,7 +931,7 @@ class Provider extends Category implements ProviderInterface
         if (strtolower((string)$this->configuration->sso_destination) === 'wordpress') {
             $this->requireEnhanceVersion('8.0.0', 'wordpress login');
 
-            if (!$websiteId) {
+            if (!isset($websiteId)) {
                 $this->errorResult('Website not found', [
                     'customer_id' => $customerId,
                     'subscription_id' => $subscriptionId,
@@ -995,7 +1000,7 @@ class Provider extends Category implements ProviderInterface
         $apps = $this->api()->apps()->getWebsiteApps($customerId, $websiteId);
 
         foreach ($apps->getItems() as $app) {
-            if ($app->getApp() === WebsiteAppKind::WORDPRESS) {
+            if ($app->getApp() == WebsiteAppKind::WORDPRESS) {
                 return $app->getId();
             }
         }
@@ -1020,16 +1025,16 @@ class Provider extends Category implements ProviderInterface
         // Get the available groups and check the given one exist
         $groups = $this->api()->servers()->getServerGroups();
 
-        /** @var ServerGroup $validGroup */
         $validGroup = null;
         foreach ($groups->getItems() ?? [] as $group) {
             if ($group->getId() === $location || $group->getName() === $location) {
+                /** @var ServerGroup $validGroup */
                 $validGroup = $group;
                 break;
             }
         }
 
-        if (!isset($validGroup)) {
+        if ($validGroup === null) {
             if ($orFail) {
                 $this->errorResult(sprintf('Server group "%s" not found', $location));
             }
@@ -1044,7 +1049,7 @@ class Provider extends Category implements ProviderInterface
                 continue; // server not in group
             }
 
-            if ($server->getRoles()->getApplication() !== RoleInstallationState::ENABLED) {
+            if ($server->getRoles()->getApplication() != RoleInstallationState::ENABLED) {
                 continue; // server not an application server
             }
 
@@ -1212,7 +1217,7 @@ class Provider extends Category implements ProviderInterface
      * Returns an assoc array of debug data for the last guzzle request/response
      * for guzzle clients whose stack was obtained from `$this->getGuzzleHandlerStack()`.
      *
-     * @return array<array<string[]>>|null
+     * @return null|array<string, null|array<string, string|int>>
      * @throws \Throwable
      */
     protected function getLastGuzzleRequestDebug(): ?array
