@@ -136,7 +136,7 @@ class Provider extends Category implements ProviderInterface
                     $this->configuration->create_subscription_only ? 'Subscription' : 'Website'
                 ));
         } catch (Throwable $e) {
-            if ($customerCreated) {
+            if ($customerCreated && isset($customerId)) {
                 try {
                     $this->api()->orgs()->deleteOrg($customerId, 'true');
                 } catch (Throwable $e) {
@@ -283,12 +283,7 @@ class Provider extends Category implements ProviderInterface
             $customerId = $params->customer_id ?: $this->findCustomerIdByEmail($params->username);
             $subscriptionId = intval($params->subscription_id) ?: null;
 
-            return $this->getSubscriptionUsage(
-                $customerId,
-                $subscriptionId,
-                $params->domain,
-                $params->username
-            );
+            return $this->getSubscriptionUsage($customerId, $subscriptionId, $params->domain);
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -1104,6 +1099,8 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
+     * @return no-return
+     *
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      * @throws \Throwable
      */
