@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\InterWorx;
 
-use ErrorException;
 use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 use SoapClient;
