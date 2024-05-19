@@ -9,7 +9,6 @@ use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 use SoapClient;
 use Upmind\ProvisionBase\Helper;
-use Throwable;
 use RuntimeException;
 use Illuminate\Support\Str;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;
@@ -22,7 +21,7 @@ class Api
 {
     private Configuration $configuration;
     private ?LoggerInterface $logger;
-    private ?SoapClient $client;
+    private ?SoapClient $client = null;
 
     public function __construct(Configuration $configuration, ?LoggerInterface $logger = null)
     {
@@ -42,7 +41,11 @@ class Api
         ]);
     }
 
-    public function makeRequest(string $controller, string $action, array $input = []): ?array
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
+    public function makeRequest(string $controller, string $action, array $input = []): array
     {
         $key = [
             'email' => $this->configuration->username,
@@ -60,7 +63,10 @@ class Api
         return $this->parseResponseData($response);
     }
 
-    private function parseResponseData(array $response): ?array
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
+    private function parseResponseData(array $response): array
     {
         if (!array_key_exists('status', $response) || !array_key_exists('payload', $response)) {
             throw ProvisionFunctionError::create('Unknown Error')
@@ -108,7 +114,7 @@ class Api
                 $errorMessages[] = 'Invalid package name';
             }
 
-            if (count($errorMessages) == 0) {
+            if (count($errorMessages) === 0) {
                 $lines = explode("\n", $response['payload']);
                 return $lines[1] ?? 'Unknown Error';
             }
@@ -145,16 +151,28 @@ class Api
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     private function createResellerAccount(array $input): void
     {
         $this->makeRequest('/nodeworx/reseller', 'add', $input);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     private function createSiteworxAccount(array $input): void
     {
         $this->makeRequest('/nodeworx/siteworx', 'add', $input);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     private function getFreeIp(): string
     {
         $result = $this->makeRequest('/nodeworx/siteworx', 'listFreeIps');
@@ -163,8 +181,8 @@ class Api
     }
 
     /**
-     * @param string $domain
-     * @return array
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
      */
     public function getAccountData(string $domain): array
     {
@@ -184,6 +202,10 @@ class Api
         ];
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     private function getSiteWorxAccount(string $domain)
     {
         $apiController = '/nodeworx/siteworx';
@@ -195,7 +217,11 @@ class Api
         return $this->makeRequest($apiController, $action, $input)['payload'];
     }
 
-    private function getResellerAccount(string $username): ?array
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
+    private function getResellerAccount(string $username): array
     {
         $apiController = '/nodeworx/reseller';
         $action = 'listResellers';
@@ -220,6 +246,10 @@ class Api
         return $result;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function getResellerData(string $username): ?array
     {
         $reseller = $this->getResellerAccount($username);
@@ -233,6 +263,10 @@ class Api
         ];
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function getDomainName(string $username): string
     {
         $controller = '/nodeworx/siteworx';
@@ -246,6 +280,10 @@ class Api
         return $response[0]['domain'];
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function getAccountUsage(string $domain): UsageData
     {
         $account = $this->getSiteWorxAccount($domain);
@@ -269,6 +307,10 @@ class Api
             ->setBandwidthMb($bandwidth);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function getResellerAccountUsage(string $username): UsageData
     {
         $account = $this->getResellerAccount($username);
@@ -291,6 +333,10 @@ class Api
             ->setBandwidthMb($bandwidth);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function suspendAccount(string $domain, ?string $reason): void
     {
         $controller = '/nodeworx/siteworx';
@@ -306,6 +352,10 @@ class Api
         $this->makeRequest($controller, $action, $input);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function unsuspendAccount(string $username): void
     {
         $controller = '/nodeworx/siteworx';
@@ -317,6 +367,10 @@ class Api
         $this->makeRequest($controller, $action, $input);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function deleteAccount(string $domain): void
     {
         $controller = '/nodeworx/siteworx';
@@ -328,6 +382,10 @@ class Api
         $this->makeRequest($controller, $action, $input);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function updatePassword(string $domain, string $password): void
     {
         $controller = '/nodeworx/siteworx';
@@ -341,7 +399,11 @@ class Api
         $this->makeRequest($controller, $action, $input);
     }
 
-    public function updatePackage(string $domain, string $package)
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
+    public function updatePackage(string $domain, string $package): void
     {
         $controller = '/nodeworx/siteworx';
         $action = 'edit';
@@ -353,6 +415,10 @@ class Api
         $this->makeRequest($controller, $action, $input);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     public function deleteReseller(string $username): void
     {
         $reseller = $this->getResellerAccount($username);
