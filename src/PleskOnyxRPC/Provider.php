@@ -8,7 +8,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
-use Upmind\ProvisionBase\Result\ProviderResult;
 use Upmind\ProvisionBase\Helper;
 use PleskX\Api\Client;
 use PleskX\Api\Exception as PleskException;
@@ -48,7 +47,7 @@ class Provider extends SharedHosting implements ProviderInterface
     protected $configuration;
 
     /**
-     * @var Client
+     * @var Client|null
      */
     protected $client;
 
@@ -66,6 +65,9 @@ class Provider extends SharedHosting implements ProviderInterface
         ]);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function testConfiguration()
     {
         try {
@@ -75,14 +77,19 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return $this->okResult('Credentials verified');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Configuration test');
+            $this->handleException($e, 'Configuration test');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Errors\ServiceMisconfiguration
+     * @throws \Throwable
+     */
     public function create(CreateParams $params): AccountInfo
     {
         if (!$params->domain) {
-            throw $this->errorResult('Domain name is required');
+            $this->errorResult('Domain name is required');
         }
 
         if ($params->as_reseller) {
@@ -118,7 +125,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 $newCustomer = $client->customer()->create($customerParams);
                 $customerId = $newCustomer->id;
             } catch (PleskException | PleskClientException | ProviderError $e) {
-                return $this->handleException($e, 'Create customer');
+                $this->handleException($e, 'Create customer');
             }
         }
 
@@ -141,7 +148,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     $client->customer()->delete('id', $newCustomer->id);
                 }
 
-                return $this->handleException($e, 'Get IPs');
+                $this->handleException($e, 'Get IPs');
             } catch (Throwable $e) {
                 //cleanup customer
                 if (isset($newCustomer)) {
@@ -160,7 +167,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 $client->customer()->delete('id', $newCustomer->id);
             }
 
-            return $this->handleException($e, 'Get plan info');
+            $this->handleException($e, 'Get plan info');
         }
 
         try {
@@ -182,7 +189,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 $client->customer()->delete('id', $newCustomer->id);
             }
 
-            return $this->handleException($e, 'Create webspace');
+            $this->handleException($e, 'Create webspace');
         } catch (Throwable $e) {
             //cleanup customer
             if (isset($newCustomer)) {
@@ -197,6 +204,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setDebug(['customer' => $newCustomer ?? $customerId, 'webspace' => $webspace]);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function createReseller(CreateParams $params): AccountInfo
     {
         $login = $params->username ?? $this->generateUsername($params->domain);
@@ -209,7 +220,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $ip_address = $params->custom_ip;
 
         if ($ownerLogin) {
-            return $this->errorResult("Cannot specify owner_username when creating a reseller");
+            $this->errorResult("Cannot specify owner_username when creating a reseller");
         }
 
         $client = $this->getClient();
@@ -225,7 +236,7 @@ class Provider extends SharedHosting implements ProviderInterface
         try {
             $plan = $client->resellerPlan()->request($planRequest);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get reseller plan info');
+            $this->handleException($e, 'Get reseller plan info');
         }
 
         $resellerRequest = [
@@ -239,7 +250,7 @@ class Provider extends SharedHosting implements ProviderInterface
             //create reseller
             $customer = $client->reseller()->request($resellerRequest);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Create reseller');
+            $this->handleException($e, 'Create reseller');
         }
 
         if (!$ip_address) {
@@ -259,7 +270,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 //cleanup reseller
                 $client->reseller()->delete('id', $customer->id);
 
-                return $this->handleException($e, 'Get IPs');
+                $this->handleException($e, 'Get IPs');
             } catch (Throwable $e) {
                 //cleanup reseller
                 $client->reseller()->delete('id', $customer->id);
@@ -310,7 +321,7 @@ class Provider extends SharedHosting implements ProviderInterface
             //cleanup reseller
             $client->reseller()->delete('id', $customer->id);
 
-            return $this->handleException($e, 'Create webspace');
+            $this->handleException($e, 'Create webspace');
         } catch (Throwable $e) {
             //cleanup reseller
             $client->reseller()->delete('id', $customer->id);
@@ -323,6 +334,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setDebug(@compact('customer', 'webspace'));
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
         $username = $params->username;
@@ -330,14 +345,14 @@ class Provider extends SharedHosting implements ProviderInterface
         $plan = 'Custom'; // plan quotas / settings don't change
 
         if ($this->loginBelongsToReseller($username)) {
-            return $this->emptyResult('Account is already a reseller');
+            $this->emptyResult('Account is already a reseller');
         }
 
         if ($plan !== 'Custom') {
             try {
                 $this->getPlan($plan, 'reseller'); //check reseller plan exists
             } catch (PleskException | PleskClientException | ProviderError $e) {
-                return $this->handleException($e, 'Get reseller plan info');
+                $this->handleException($e, 'Get reseller plan info');
             }
         }
 
@@ -359,10 +374,14 @@ class Provider extends SharedHosting implements ProviderInterface
                 ->setMessage('Reseller privileges granted')
                 ->setReseller(true);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Grant reseller privileges');
+            $this->handleException($e, 'Grant reseller privileges');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
         $username = $params->username;
@@ -370,14 +389,14 @@ class Provider extends SharedHosting implements ProviderInterface
         $plan = 'Custom'; // plan quotas / settings don't change
 
         if (! $this->loginBelongsToReseller($username)) {
-            return $this->emptyResult('Account is already not a reseller');
+            $this->emptyResult('Account is already not a reseller');
         }
 
         if ($plan !== 'Custom') {
             try {
                 $this->getPlan($plan, 'service'); //check service plan exists
             } catch (PleskException | PleskClientException | ProviderError $e) {
-                return $this->handleException($e, 'Get plan info');
+                $this->handleException($e, 'Get plan info');
             }
         }
 
@@ -399,10 +418,14 @@ class Provider extends SharedHosting implements ProviderInterface
                 ->setMessage('Reseller privileges revoked')
                 ->setReseller(false);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Revoke reseller privileges');
+            $this->handleException($e, 'Revoke reseller privileges');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getInfo(AccountUsername $params): AccountInfo
     {
         $username = $params->username;
@@ -522,10 +545,13 @@ class Provider extends SharedHosting implements ProviderInterface
                 ]
             );
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get subscription info');
+            $this->handleException($e, 'Get subscription info');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function getResellerInfo(string $username): AccountInfo
     {
         $webspaceRequest = [
@@ -580,15 +606,22 @@ class Provider extends SharedHosting implements ProviderInterface
                 ]
             );
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get reseller info');
+            $this->handleException($e, 'Get reseller info');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
         $username = $params->username;
@@ -603,7 +636,7 @@ class Provider extends SharedHosting implements ProviderInterface
         try {
             $plan = $this->getPlan($plan);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get plan info');
+            $this->handleException($e, 'Get plan info');
         }
 
         $webspaceRequest = [
@@ -631,10 +664,13 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->getInfo(AccountUsername::create($params))
                 ->setMessage('Package changed');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, "Change customer package");
+            $this->handleException($e, "Change customer package");
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function changeResellerPackage(string $username, string $plan): EmptyResult
     {
         $client = $this->getClient();
@@ -642,7 +678,7 @@ class Provider extends SharedHosting implements ProviderInterface
         try {
             $plan = $this->getPlan($plan, 'reseller');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get reseller plan info');
+            $this->handleException($e, 'Get reseller plan info');
         }
 
         $webspaceRequest = [
@@ -659,10 +695,13 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return $this->emptyResult("Reseller package changed");
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, "Change reseller package");
+            $this->handleException($e, "Change reseller package");
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         $username = $params->username;
@@ -698,10 +737,14 @@ class Provider extends SharedHosting implements ProviderInterface
                 ->setForIp($user_ip)
                 ->setExpires(Carbon::now()->addMinutes(30)); // default 30 minute session idle time
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Create session');
+            $this->handleException($e, 'Create session');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function suspend(SuspendParams $params): AccountInfo
     {
         $username = $params->username;
@@ -759,10 +802,14 @@ class Provider extends SharedHosting implements ProviderInterface
                 ->setSuspendReason($params->reason)
                 ->setDebug($params->toArray());
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Subscription suspension');
+            $this->handleException($e, 'Subscription suspension');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function suspendReseller(string $username): AccountInfo
     {
         $requestParams = [
@@ -787,10 +834,14 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->getInfo(AccountUsername::create(['username' => $username]))
             ->setMessage('Reseller suspended');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Reseller suspension');
+            $this->handleException($e, 'Reseller suspension');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         $username = $params->username;
@@ -845,10 +896,14 @@ class Provider extends SharedHosting implements ProviderInterface
                 ->setMessage('Subscription unsuspended')
                 ->setDebug($params->toArray());
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Subscription unsuspension');
+            $this->handleException($e, 'Subscription unsuspension');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function unSuspendReseller(string $username): AccountInfo
     {
         $requestParams = [
@@ -872,10 +927,13 @@ class Provider extends SharedHosting implements ProviderInterface
             return $this->getInfo(AccountUsername::create(['username' => $username]))
             ->setMessage('Reseller unsuspended');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Reseller unsuspension');
+            $this->handleException($e, 'Reseller unsuspension');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
         $username = $params->username;
@@ -905,10 +963,13 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return $this->emptyResult('Password changed');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Change password');
+            $this->handleException($e, 'Change password');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function changeResellerPassword(string $username, string $password): EmptyResult
     {
         $requestParams = [
@@ -931,10 +992,13 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return $this->emptyResult('Password changed');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Change password');
+            $this->handleException($e, 'Change password');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function terminate(AccountUsername $params): EmptyResult
     {
         $username = $params->username;
@@ -956,10 +1020,13 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return $this->emptyResult('Subscription deleted');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Delete Subscription');
+            $this->handleException($e, 'Delete Subscription');
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function terminateReseller(string $username): EmptyResult
     {
         $client = $this->getClient();
@@ -969,7 +1036,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return $this->emptyResult('Reseller deleted');
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Delete reseller');
+            $this->handleException($e, 'Delete reseller');
         }
     }
 
@@ -1062,7 +1129,7 @@ class Provider extends SharedHosting implements ProviderInterface
     }
 
     /**
-     * @throws ProvisionFunctionError
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      *
      * @return no-return
      */
@@ -1132,6 +1199,8 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param string $type E.g., NS
      *
      * @return string[]
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     private function getDnsRecords(Client $client, $domainId, string $type): array
     {
@@ -1156,7 +1225,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
             return array_values(array_unique($records));
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get dns records', ['domain_id' => $domainId, 'type' => $type]);
+            $this->handleException($e, 'Get dns records', ['domain_id' => $domainId, 'type' => $type]);
         }
     }
 
@@ -1195,6 +1264,9 @@ class Provider extends SharedHosting implements ProviderInterface
         return array_values(array_unique($domainNameServers));
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     private function getDomainInfo(Client $client, string $domain): XmlResponse
     {
         try {
@@ -1213,10 +1285,13 @@ class Provider extends SharedHosting implements ProviderInterface
                 ],
             ]);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get domain info', ['domain' => $domain]);
+            $this->handleException($e, 'Get domain info', ['domain' => $domain]);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     private function getDomainWebspaceInfo(Client $client, string $domain): XmlResponse
     {
         $domainInfo = $this->getDomainInfo($client, $domain);
@@ -1224,6 +1299,9 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->getWebspaceInfo($client, $domainInfo->data->gen_info->getValue('webspace-id'));
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     private function getWebspaceInfo(Client $client, $webspaceId, string $type = 'id'): XmlResponse
     {
         try {
@@ -1243,10 +1321,13 @@ class Provider extends SharedHosting implements ProviderInterface
                 ],
             ]);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get customer info', [$type => $webspaceId]);
+            $this->handleException($e, 'Get customer info', [$type => $webspaceId]);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     private function getCustomerInfo(Client $client, $ownerId): XmlResponse
     {
         try {
@@ -1262,10 +1343,13 @@ class Provider extends SharedHosting implements ProviderInterface
                 ],
             ]);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get customer info', ['customer_id' => $ownerId]);
+            $this->handleException($e, 'Get customer info', ['customer_id' => $ownerId]);
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     private function getPlanInfo(Client $client, $planGuid): XmlResponse
     {
         try {
@@ -1277,7 +1361,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 ],
             ]);
         } catch (PleskException | PleskClientException | ProviderError $e) {
-            return $this->handleException($e, 'Get plan info', ['plan_guid' => $planGuid]);
+            $this->handleException($e, 'Get plan info', ['plan_guid' => $planGuid]);
         }
     }
 }
