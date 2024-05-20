@@ -10,6 +10,6 @@ class ServiceMisconfiguration extends \RuntimeException implements ProviderError
 {
     public static function forNoSharedIps(): ProviderError
     {
-        return new static("Plesk server has no shared IPs");
+        return new self("Plesk server has no shared IPs");
     }
 }
