@@ -8,7 +8,7 @@ use Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Errors\Interfaces\Provi
 
 class ServiceMisconfiguration extends \RuntimeException implements ProviderError
 {
-    public static function forNoSharedIps(): ProviderError
+    public static function forNoSharedIps(): self
     {
         return new self("Plesk server has no shared IPs");
     }
