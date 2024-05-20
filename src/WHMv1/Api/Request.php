@@ -5,7 +5,6 @@ declare (strict_types=1);
 namespace Upmind\ProvisionProviders\SharedHosting\WHMv1\Api;
 
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Promise\PromiseInterface;
 use Psr\Http\Message\ResponseInterface as Psr7Response;
 use Upmind\ProvisionBase\Provider\Helper\Api\Request as ApiRequest;
 
