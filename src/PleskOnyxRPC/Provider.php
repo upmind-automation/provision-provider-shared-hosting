@@ -348,13 +348,14 @@ class Provider extends SharedHosting implements ProviderInterface
             $this->emptyResult('Account is already a reseller');
         }
 
-        if ($plan !== 'Custom') {
-            try {
-                $this->getPlan($plan, 'reseller'); //check reseller plan exists
-            } catch (PleskException | PleskClientException | ProviderError $e) {
-                $this->handleException($e, 'Get reseller plan info');
-            }
-        }
+//        ToDo: Delete the below code (& above $plan = $params->package_name ?: 'Custom';), as we manually set the plan to 'Custom' in the above line
+//        if ($plan !== 'Custom') {
+//            try {
+//                $this->getPlan($plan, 'reseller'); //check reseller plan exists
+//            } catch (PleskException | PleskClientException | ProviderError $e) {
+//                $this->handleException($e, 'Get reseller plan info');
+//            }
+//        }
 
         $customerRequest = [
             'convert-to-reseller' => [
@@ -392,13 +393,14 @@ class Provider extends SharedHosting implements ProviderInterface
             $this->emptyResult('Account is already not a reseller');
         }
 
-        if ($plan !== 'Custom') {
-            try {
-                $this->getPlan($plan, 'service'); //check service plan exists
-            } catch (PleskException | PleskClientException | ProviderError $e) {
-                $this->handleException($e, 'Get plan info');
-            }
-        }
+//        ToDo: Delete the below code (& above $plan = $params->package_name ?: 'Custom';), as we manually set the plan to 'Custom' in the above line
+//        if ($plan !== 'Custom') {
+//            try {
+//                $this->getPlan($plan, 'service'); //check service plan exists
+//            } catch (PleskException | PleskClientException | ProviderError $e) {
+//                $this->handleException($e, 'Get plan info');
+//            }
+//        }
 
         $resellerRequest = [
             'convert-to-customer' => [
