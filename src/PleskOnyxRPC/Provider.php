@@ -1062,14 +1062,6 @@ class Provider extends SharedHosting implements ProviderInterface
         ) . rand(1, 9);
 
         return $username;
-
-        // if ($this->newUsernameIsValid($username)) {
-        //     return $username;
-        // }
-
-        $username = substr($username, 0, $this->getMaxUsernameLength() - 1) . rand(1, 9);
-
-        return $this->generateUsername($username, $count++);
     }
 
     protected function getMaxUsernameLength(): int
