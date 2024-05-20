@@ -16,6 +16,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read string $password SolidCP API password
  * @property-read string $portal_url SolidCP portal URL
  * @property-read int $parent_space_id SpaceID that all accounts are created under
+ * @property-read int $socket_timeout Socket timeout in seconds
  */
 class Configuration extends DataSet
 {
