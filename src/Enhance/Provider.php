@@ -556,7 +556,7 @@ class Provider extends Category implements ProviderInterface
 
         $subscription = $this->api()->subscriptions()->getSubscription(
             $customerId,
-                !$subscriptionId ? $website->getSubscriptionId() : $subscriptionId
+            !$subscriptionId ? $website->getSubscriptionId() : $subscriptionId
         );
 
         if ($subscription->getStatus() == Status::DELETED) {
@@ -1011,7 +1011,6 @@ class Provider extends Category implements ProviderInterface
             'website_id' => $websiteId,
         ]);
     }
-
 
     /**
      * @param string $location Server group name or id

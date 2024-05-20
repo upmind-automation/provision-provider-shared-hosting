@@ -275,7 +275,6 @@ class Api
         }
     }
 
-
     /**
      * List available locations (data centres).
      *
