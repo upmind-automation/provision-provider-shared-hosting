@@ -7,7 +7,11 @@ RUN apt update && \
     git \
     curl \
     zip \
-    unzip
+    unzip \
+    libxml2-dev
+
+# Install additional PHP extensions
+RUN docker-php-ext-install soap
 
 # Install Packages via PECL as not provided by PHP Source
 RUN pecl install xdebug \
