@@ -55,7 +55,7 @@ class Provider extends SharedHosting implements ProviderInterface
     protected $configuration;
 
     /**
-     * @var Client
+     * @var Client|null
      */
     protected $client;
 
@@ -79,6 +79,9 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setLogoUrl('https://api.upmind.io/images/logos/provision/cpanel-logo@2x.png');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function testConfiguration(): EmptyResult
     {
         $functionsResult = ProviderResult::createFromProviderOutput($this->listFunctions());
@@ -87,7 +90,7 @@ class Provider extends SharedHosting implements ProviderInterface
             $errorMessage = "Configuration is unable to list available API commands: "
                 . $functionsResult->getMessage();
 
-            return $this->errorResult(
+            $this->errorResult(
                 $errorMessage,
                 $functionsResult->getData(),
                 $functionsResult->getDebug(),
@@ -209,6 +212,11 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->finishCreate($params, $domain, $username, $password);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function finishCreate(CreateParams $params, string $domain, string $username, string $password): AccountInfo
     {
         $info = $this->getAccountInfo($username)
@@ -233,7 +241,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     $installation = $softaculous->installWordpress($domain, $params->email);
                 }
 
-                $info->setSoftware($installation);
+                $info->setSoftware($installation ?? null);
             } catch (\Throwable $e) {
                 // clean-up
                 $this->deleteAccount($username);
@@ -845,7 +853,7 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param array $params API function params
      * @param array $requestOptions Guzzle request options
      *
-     * @return PromiseInterface<Response>
+     * @return PromiseInterface
      */
     protected function asyncApiCall(
         string $method,
@@ -885,7 +893,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     $message = 'WHM API Request Timeout';
                 }
 
-                return $this->errorResult($message, $data, $debug, $e);
+                $this->errorResult($message, $data, $debug, $e);
             }
 
             throw $e;
