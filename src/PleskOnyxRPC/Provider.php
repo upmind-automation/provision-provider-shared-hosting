@@ -630,7 +630,9 @@ class Provider extends SharedHosting implements ProviderInterface
         $plan = $params->package_name;
 
         if ($this->loginBelongsToReseller($username)) {
-            return $this->changeResellerPackage($username, $plan);
+            $this->changeResellerPackage($username, $plan);
+
+            return $this->getInfo(AccountUsername::create($params))->setMessage('Reseller package changed');
         }
 
         $client = $this->getClient();
