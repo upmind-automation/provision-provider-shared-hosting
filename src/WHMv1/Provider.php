@@ -116,7 +116,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $missingFunctions = collect($requiredFunctions)->diff($availableFunctions);
 
         if ($missingFunctions->isNotEmpty()) {
-            return $this->errorResult(
+            $this->errorResult(
                 "Configuration is unable to execute all required API functions",
                 ['missing_commands' => $missingFunctions->values()->all()],
                 ['available_commands' => $availableFunctions]
@@ -142,10 +142,15 @@ class Provider extends SharedHosting implements ProviderInterface
         });
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function create(CreateParams $params): AccountInfo
     {
         if (!$params->domain) {
-            throw $this->errorResult('Domain name is required');
+            $this->errorResult('Domain name is required');
         }
 
         $username = $params->username ?: $this->generateUsername($params->domain);
@@ -167,7 +172,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         if ($reseller && !$this->canGrantReseller()) {
-            return $this->errorResult('Configuration lacks sufficient privileges to create resellers');
+            $this->errorResult('Configuration lacks sufficient privileges to create resellers');
         }
 
         $requestParams = compact(
@@ -253,6 +258,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return $info;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
         $response = $this->makeApiCall('POST', 'setupreseller', [
@@ -266,6 +275,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setReseller(true);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
         $user = $params->username;
@@ -279,6 +292,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setReseller(false);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getInfo(AccountUsername $params): AccountInfo
     {
         return $this->getAccountInfo(
@@ -287,6 +304,10 @@ class Provider extends SharedHosting implements ProviderInterface
         );
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
         $username = $params->username;
@@ -333,6 +354,10 @@ class Provider extends SharedHosting implements ProviderInterface
             );
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
         $isReseller = $this->userIsReseller($params->username);
@@ -340,7 +365,7 @@ class Provider extends SharedHosting implements ProviderInterface
         if ($params->as_reseller) {
             if (!$isReseller) {
                 if (!$this->canGrantReseller()) {
-                    return $this->errorResult('Configuration lacks sufficient privileges to create resellers');
+                    $this->errorResult('Configuration lacks sufficient privileges to create resellers');
                 }
 
                 $this->grantReseller(GrantResellerParams::create($params));
@@ -363,6 +388,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Package/limits updated');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         $user = $params->username;
@@ -376,7 +405,7 @@ class Provider extends SharedHosting implements ProviderInterface
         $url = $data['url'];
 
         if ($this->configuration->sso_destination === 'softaculous_sso' && empty($params->software->install_id)) {
-            throw $this->errorResult('Website software installation ID not given');
+            $this->errorResult('Website software installation ID not given');
         }
 
         if (in_array($this->configuration->sso_destination, ['softaculous_sso', 'auto'])) {
@@ -394,6 +423,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setExpires(Carbon::createFromTimestampUTC($data['expires']));
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function suspend(SuspendParams $params): AccountInfo
     {
         try {
@@ -425,6 +458,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Account suspended');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         try {
@@ -456,6 +493,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Account unsuspended');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
         $user = $params->username;
@@ -468,6 +509,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->emptyResult('Password changed');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function terminate(AccountUsername $params): EmptyResult
     {
         $this->deleteAccount($params->username);
@@ -475,6 +520,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->emptyResult('Account deleted');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function suspendAccount(string $username, ?string $reason = null): void
     {
         $requestParams = [
@@ -488,6 +537,10 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function unSuspendAccount(string $username): void
     {
         $requestParams = [
@@ -500,6 +553,10 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function deleteAccount(string $username): void
     {
         $response = $this->userIsReseller($username)
@@ -517,6 +574,10 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getAccountInfo(string $username, ?bool $isReseller = null): AccountInfo
     {
         $promises = [
@@ -549,6 +610,8 @@ class Provider extends SharedHosting implements ProviderInterface
 
     /**
      * Determine the package name
+     *
+     * @throws \Throwable
      */
     protected function determinePackageName(string $packageName): string
     {
@@ -575,6 +638,9 @@ class Provider extends SharedHosting implements ProviderInterface
 
     /**
      * Get info about a package.
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function getPackageInfo(string $packageName): array
     {
@@ -587,6 +653,9 @@ class Provider extends SharedHosting implements ProviderInterface
 
     /**
      * Update the given reseller's ACL and/or account/resource limits.
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function changeResellerOptions(string $username, ResellerOptionParams $params): void
     {
@@ -595,6 +664,10 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->changeResellerLimits($username, $params);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function changeResellerACL(string $username, ?string $aclName): void
     {
         $response = $this->makeApiCall('POST', 'setacls', [
@@ -604,6 +677,10 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function changeResellerLimits(string $username, ResellerOptionParams $params): void
     {
         $enableResourceLimits = isset($params->bandwidth_mb_limit) || isset($params->diskspace_mb_limit);
@@ -624,6 +701,10 @@ class Provider extends SharedHosting implements ProviderInterface
         $this->processResponse($response);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function userIsReseller(string $username): ?bool
     {
         if ($this->canGrantReseller()) {
@@ -646,6 +727,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param int $count Number of attempts so far
      *
      * @return string A unique valid username
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function generateUsername(string $base, int $count = 0): string
     {
@@ -669,6 +753,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->generateUsername($username, $count + 1);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function newUsernameIsValid(string $username): bool
     {
         $response = $this->makeApiCall('POST', 'verify_new_username', [
@@ -837,6 +925,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param array $requestOptions Guzzle request options
      *
      * @return \Upmind\ProvisionProviders\SharedHosting\WHMv1\Api\Response
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function makeApiCall(
         string $method,
@@ -854,6 +945,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param array $requestOptions Guzzle request options
      *
      * @return PromiseInterface
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function asyncApiCall(
         string $method,
@@ -900,6 +994,9 @@ class Provider extends SharedHosting implements ProviderInterface
         });
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function processResponse(
         Response $response,
         ?callable $successDataTransformer = null
@@ -924,7 +1021,7 @@ class Provider extends SharedHosting implements ProviderInterface
             $debug['response_body'] = Str::limit($response->getPsr7()->getBody()->__toString(), 300);
         }
 
-        return $this->errorResult('WHM API Error: ' . $message, $data, $debug);
+        $this->errorResult('WHM API Error: ' . $message, $data, $debug);
     }
 
     protected function getSoftaculous(string $username, string $password): SoftaculousSdk
