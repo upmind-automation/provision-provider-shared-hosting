@@ -1223,12 +1223,6 @@ class Provider extends SharedHosting implements ProviderInterface
         }
     }
 
-    /**
-     * @param array $domains
-     * @param Client $client
-     * @param array $domainNameServers
-     * @return array
-     */
     private function extractNameServers(
         string $domainName,
         array $domains,
@@ -1250,7 +1244,7 @@ class Provider extends SharedHosting implements ProviderInterface
             }
 
             $domainNameServers = array_merge(
-                $domainNameServers ?? [],
+                $domainNameServers,
                 $this->getDnsRecords($client, $domain['id'], 'NS')
             );
         }
