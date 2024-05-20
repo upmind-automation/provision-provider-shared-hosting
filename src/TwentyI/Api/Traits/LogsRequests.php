@@ -38,6 +38,8 @@ trait LogsRequests
 
     /**
      * @inheritDoc
+     *
+     * @throws \Throwable
      */
     public function getRawWithFields($url, $fields = [], $options = [])
     {
@@ -49,12 +51,14 @@ trait LogsRequests
             $result = $this->getErrorResult($e);
             throw $e;
         } finally {
-            $this->logRequest('GET', $url, $fields, $result);
+            $this->logRequest('GET', $url, $fields, $result ?? null);
         }
     }
 
     /**
      * @inheritDoc
+     *
+     * @throws \Throwable
      */
     public function postWithFields($url, array $fields, array $options = [])
     {
@@ -64,12 +68,14 @@ trait LogsRequests
             $result = $this->getErrorResult($e);
             throw $e;
         } finally {
-            $this->logRequest('POST', $url, $fields, $result);
+            $this->logRequest('POST', $url, $fields, $result ?? null);
         }
     }
 
     /**
      * @inheritDoc
+     *
+     * @throws \Throwable
      */
     public function putWithFields($url, $fields, $options = [])
     {
@@ -79,12 +85,14 @@ trait LogsRequests
             $result = $this->getErrorResult($e);
             throw $e;
         } finally {
-            $this->logRequest('PUT', $url, $fields, $result);
+            $this->logRequest('PUT', $url, $fields, $result ?? null);
         }
     }
 
     /**
      * @inheritDoc
+     *
+     * @throws \Throwable
      */
     public function deleteWithFields($url, $fields = [], $options = [])
     {
@@ -94,7 +102,7 @@ trait LogsRequests
             $result = $this->getErrorResult($e);
             throw $e;
         } finally {
-            $this->logRequest('DELETE', $url, $fields, $result);
+            $this->logRequest('DELETE', $url, $fields, $result ?? null);
         }
     }
 
