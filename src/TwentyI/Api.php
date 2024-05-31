@@ -53,17 +53,20 @@ class Api
     public function searchForStackUser(string $email, bool $orFail = false): ?string
     {
         try {
-            // "list all + filter results" appears to be the only way to find a user which is horrendous !
-            $allUsers = $this->services->getWithFields('/reseller/*/susers')->users;
+            // "list all + filter results" appears to be the only way to find a user
+            // $allUsers = $this->services->getWithFields('/reseller/*/susers')->users;
+            $allUsers = $this->services->getWithFields('/reseller/*/explicitStackUser', [
+                // 'name' => $email,
+            ]);
             $user = Arr::first($allUsers, function ($user) use ($email) {
-                return $user->name === $email;
+                return ($user->email ?? $user->name) === $email;
             });
 
             if (!$user && $orFail) {
                 throw (new ProvisionFunctionError('Stack user not found'))->withData(['email' => $email]);
             }
 
-            return $user ? sprintf('%s:%s', $user->type, $user->id) : null;
+            return $user ? sprintf('%s:%s', $user->type ?? 'stack-user', $user->id) : null;
         } catch (\Throwable $e) {
             return $this->handleException($e, 'Could not list stack users', ['email' => $email]);
         }
