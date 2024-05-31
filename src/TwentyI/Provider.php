@@ -417,24 +417,16 @@ class Provider extends SharedHosting implements ProviderInterface
             return $existingUser;
         }
 
-        return $this->api()->createStackUser($params->email);
-    }
-
-    /**
-     * Create a new stack user by combining email and domain name.
-     *
-     * @return string Stack user reference
-     *
-     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
-     * @throws \Throwable
-     */
-    protected function createUniqueUser(CreateParams $params): string
-    {
-        // create a new unique user for this domain
-
-        $email = $this->getEmailPlusDomain($params->email, $params->domain);
-
-        return $this->api()->createStackUser($email);
+        return $this->api()->createStackUser(
+            $params->email,
+            $params->customer_name,
+            $params->customer_reference,
+            $params->customer_address->address_1 ?? null,
+            $params->customer_address->city ?? null,
+            $params->customer_address->postcode ?? null,
+            $params->customer_address->country_code ?? null,
+            $params->customer_phone
+        );
     }
 
     /**

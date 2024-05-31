@@ -11,6 +11,7 @@ use Throwable;
 use TwentyI\API\CurlException;
 use TwentyI\API\HTTPException;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
+use Upmind\ProvisionProviders\SharedHosting\Data\CustomerAddressParams;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Authentication;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Services;
 
@@ -72,33 +73,44 @@ class Api
      * Create a new stack user, returning the new stack user reference.
      *
      * @param string $email Customer email address
+     * @param string $customerName Customer name
+     * @param string $customerRef Customer reference
+     * @param string|null $address1 Customer address line 1
+     * @param string|null $city Customer city
+     * @param string|null $postcode Customer postcode
+     * @param string|null $countryCode Customer country code
      *
      * @return string Stack user reference E.g., stack-user:12345
      *
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If create request fails
      * @throws \Throwable
      */
-    public function createStackUser(string $email): string
-    {
+    public function createStackUser(
+        string $email,
+        string $customerName,
+        ?string $customerRef,
+        ?string $address1,
+        ?string $city,
+        ?string $postcode,
+        ?string $countryCode,
+        ?string $internationalPhone
+    ): string {
         try {
             $createResponse = $this->services->postWithFields('/reseller/*/susers', [
                 "newUser" => [
-                    // "person_name" => $email,
+                    "person_name" => $customerName,
                     "email" => $email,
-                    "sendNewStackUserEmail" => false
-                    // "company_name" => $domain,
-                    // "address" => implode("\n", array_filter([
-                    //     $user_info["address1"],
-                    //     $user_info["address2"],
-                    // ])),
-                    // "city" => $user_info["city"],
-                    // "sp" => $user_info["state"],
-                    // "pc" => $user_info["postcode"],
-                    // "cc" => $user_info["country"],
-                    // "voice" => @$user_info["phonenumberformatted"] ?: $user_info["phonenumber"],
+                    "sendNewStackUserEmail" => false,
+                    // "company_name" => '',
+                    "address" => $address1,
+                    "city" => $city,
+                    "sp" => $city,
+                    "pc" => $postcode,
+                    "cc" => $countryCode,
+                    "voice" => $internationalPhone,
                     // "notes" => $domain,
-                    // "billing_ref" => null,
-                    // "nominet_contact_type" => null,
+                    "billing_ref" => $customerRef,
+                    "nominet_contact_type" => 'IND',
                 ],
             ]);
 
