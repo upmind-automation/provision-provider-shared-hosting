@@ -16,6 +16,9 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * @property-read boolean|null $owns_itself Account should own itself (overrides $owner_username)
  * @property-read string $email Email address of the new account holder
  * @property-read string|null $customer_name Name of the customer
+ * @property-read string|null $customer_reference Billing system reference/ID for the customer
+ * @property-read string|null $customer_phone Phone number of the customer in international format
+ * @property-read CustomerAddressParams|null $customer_address Address of the customer
  * @property-read string|null $password Password for the new account
  * @property-read string|null $domain Main domain name of the new account
  * @property-read string $package_name Name/identifier of the package/tier/quota for the new account
@@ -35,6 +38,9 @@ class CreateParams extends DataSet
             'owns_itself' => ['bool'],
             'email' => ['required', 'email'],
             'customer_name' => ['nullable', 'string'],
+            'customer_reference' => ['nullable', 'string'],
+            'customer_phone' => ['nullable', 'string', 'international_phone'],
+            'customer_address' => ['nullable', CustomerAddressParams::class],
             'password' => ['string'],
             'domain' => ['nullable', 'domain_name'],
             'package_name' => ['required', 'string'],
