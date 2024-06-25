@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Upmind\ProvisionProviders\SharedHosting\WHMv1\Softaculous;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\RequestOptions;
-use Illuminate\Support\Str;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Helper;
 use Upmind\ProvisionProviders\SharedHosting\Data\SoftwareInstallation;
@@ -60,6 +58,10 @@ class SoftaculousSdk
         ]));
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function installWordpress(
         string $domain,
         string $adminEmail,
@@ -93,6 +95,9 @@ class SoftaculousSdk
      * @param array $data Installation parameters e.g., softdomain, admin_username, admin_pass, etc.
      *
      * @return array New installation settings
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function install(int $scriptId, array $data = [])
     {
@@ -120,6 +125,8 @@ class SoftaculousSdk
 
     /**
      * Make a Softaculous API request and return the result data.
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function request(array $action, array $post = []): array
     {

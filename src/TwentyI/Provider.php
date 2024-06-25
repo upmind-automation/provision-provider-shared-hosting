@@ -9,15 +9,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use stdClass;
 use Throwable;
-use TwentyI\API\Authentication;
-use TwentyI\API\HTTPException;
-use TwentyI\API\Services;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
-use Upmind\ProvisionBase\Helper;
-use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
-use Upmind\ProvisionBase\Result\ProviderResult;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsername;
@@ -28,7 +22,6 @@ use Upmind\ProvisionProviders\SharedHosting\Data\EmptyResult;
 use Upmind\ProvisionProviders\SharedHosting\Data\GetLoginUrlParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\GrantResellerParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
-use Upmind\ProvisionProviders\SharedHosting\Data\ResellerOptionParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\UnitsConsumed;
@@ -65,10 +58,14 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setLogoUrl('https://api.upmind.io/images/logos/provision/20i-logo@2x.png');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function create(CreateParams $params): AccountInfo
     {
         if (!$params->domain) {
-            throw $this->errorResult('Domain name is required');
+            $this->errorResult('Domain name is required');
         }
 
         if (!empty($params->location)) {
@@ -86,6 +83,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setCustomerId($customerId);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getInfo(AccountUsername $params): AccountInfo
     {
         $infoResult = $this->getAccountInfoData($params->username, $params->domain);
@@ -97,6 +98,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return $infoResult;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
         $info = $this->getPackageInfo($params->username, $params->domain);
@@ -124,6 +129,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setUsageData($usage);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
         $info = $this->getPackageInfo($params->username, $params->domain);
@@ -133,7 +142,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }, Arr::first($info->stackUsers));
 
         if (!$stackUser) {
-            return $this->errorResult('Hosting package has no stack user assigned');
+            $this->errorResult('Hosting package has no stack user assigned');
         }
 
         [$loginUrl, $ttl] = $this->api()->getLoginUrl($stackUser, $info->web->name);
@@ -144,16 +153,27 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setForIp(null);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        throw $this->errorResult('Function not available for 20i accounts');
+        $this->errorResult('Function not available for 20i accounts');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        throw $this->errorResult('Function not available for 20i accounts');
+        $this->errorResult('Function not available for 20i accounts');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
         $info = $this->getPackageInfo($params->username, $params->domain ?? null);
@@ -163,7 +183,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }, Arr::first($info->stackUsers));
 
         if (!$stackUser) {
-            return $this->errorResult('Hosting package has no stack user assigned');
+            $this->errorResult('Hosting package has no stack user assigned');
         }
 
         $this->api()->changeStackUserPassword($stackUser, $params->password);
@@ -171,6 +191,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return EmptyResult::create()->setMessage('Password changed');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
         $planId = $params->package_name;
@@ -186,7 +210,7 @@ class Provider extends SharedHosting implements ProviderInterface
                 $hostingInfo->platform,
                 $planInfo->platform
             );
-            return $this->errorResult($errorMessage, [
+            $this->errorResult($errorMessage, [
                 'hosting_id' => $packageInfo->username,
                 'new_plan_id' => $planId,
             ]);
@@ -197,6 +221,10 @@ class Provider extends SharedHosting implements ProviderInterface
         return $this->getAccountInfoData($packageInfo->username);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function suspend(SuspendParams $params): AccountInfo
     {
         $infoResult = $this->getAccountInfoData($params->username, $params->domain) // throws error if hosting deleted
@@ -212,6 +240,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setSuspended(true);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         $infoResult = $this->getAccountInfoData($params->username, $params->domain) // throws error if hosting deleted
@@ -227,6 +259,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setSuspended(false);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function terminate(AccountUsername $params): EmptyResult
     {
         $infoResult = $this->getAccountInfoData($params->username, $params->domain); // throws error if already deleted
@@ -237,6 +273,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setMessage('Hosting package deleted');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function getAccountInfoData($hostingId, ?string $domain = null): AccountInfo
     {
         $info = $this->getPackageInfo($hostingId, $domain);
@@ -261,6 +301,10 @@ class Provider extends SharedHosting implements ProviderInterface
             ->setIp($ip);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     protected function getPackageInfo($hostingId, ?string $domain = null): stdClass
     {
         try {
@@ -287,8 +331,8 @@ class Provider extends SharedHosting implements ProviderInterface
      * Combine hosting id and stack user reference to return a single username
      * string.
      *
-     * @param int $hostingId Hosting package id E.g., 1234
-     * @param string $stackUser Stack user reference E.g, stack-user:4567
+     * @param int|null $hostingId Hosting package id E.g., 1234
+     * @param string|null $stackUser Stack user reference E.g, stack-user:4567
      *
      * @return string Combined username string E.g., hosting:1234|stack-user:4567
      */
@@ -317,6 +361,8 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param string $username E.g., 'hosting:1235|stack-user:5678'
      *
      * @return array E.g., [1235, 'stack-user:5678']
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function getHostingIdAndStackUser($username): array
     {
@@ -337,7 +383,7 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         if (empty($hostingId)) {
-            return $this->errorResult('Unable to determine hosting id', ['username' => $username]);
+            $this->errorResult('Unable to determine hosting id', ['username' => $username]);
         }
 
         return [$hostingId, $stackUser ?? null];
@@ -348,6 +394,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * a new one.
      *
      * @return string Stack user reference
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function findOrCreateUser(CreateParams $params): string
     {
@@ -370,6 +419,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * Create a new stack user by combining email and domain name.
      *
      * @return string Stack user reference
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function createUniqueUser(CreateParams $params): string
     {
@@ -386,6 +438,9 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param string $location Id or name
      *
      * @return string Location identifier
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function getLocationId(string $location): string
     {
@@ -398,7 +453,7 @@ class Provider extends SharedHosting implements ProviderInterface
             }
         }
 
-        throw $this->errorResult(sprintf('Location "%s" not found', $location), [
+        $this->errorResult(sprintf('Location "%s" not found', $location), [
             'available_locations' => $locations,
         ]);
     }
@@ -426,7 +481,7 @@ class Provider extends SharedHosting implements ProviderInterface
     {
         return $this->api = ($this->api = new Api(
             $this->configuration->general_api_key,
-            $this->configuration->debug ? $this->getLogger() : null
+            $this->getLogger()
         ));
     }
 }

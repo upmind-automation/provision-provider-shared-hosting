@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Upmind\ProvisionProviders\SharedHosting\InterWorx;
 
-use GuzzleHttp\Client;
 use Throwable;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
@@ -22,7 +21,6 @@ use Upmind\ProvisionProviders\SharedHosting\Data\GrantResellerParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
-use Upmind\ProvisionProviders\SharedHosting\Data\UsageData;
 use Upmind\ProvisionProviders\SharedHosting\InterWorx\Data\Configuration;
 
 /**
@@ -36,7 +34,7 @@ class Provider extends Category implements ProviderInterface
     protected $configuration;
 
     /**
-     * @var Api
+     * @var Api|null
      */
     protected $api;
 
@@ -58,15 +56,16 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function create(CreateParams $params): AccountInfo
     {
         $asReseller = boolval($params->as_reseller ?? false);
 
-        if (!$asReseller) {
-            if (!$params->domain) {
-                throw $this->errorResult('Domain name is required');
-            }
+        if (!$asReseller && !$params->domain) {
+            $this->errorResult('Domain name is required');
         }
 
         $username = $params->username ?? $this->generateUsername($params->domain);
@@ -80,9 +79,9 @@ class Provider extends Category implements ProviderInterface
 
             if ($asReseller) {
                 return $this->_getInfo($username, true, 'Reseller account created');
-            } else {
-                return $this->_getInfo($params->domain, false, 'Account created');
             }
+
+            return $this->_getInfo($params->domain, false, 'Account created');
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -102,6 +101,10 @@ class Provider extends Category implements ProviderInterface
         return 16;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \RuntimeException
+     */
     protected function _getInfo(string $domain, bool $isReseller, string $message): AccountInfo
     {
         if ($isReseller) {
@@ -115,6 +118,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function getInfo(AccountUsername $params): AccountInfo
     {
@@ -139,6 +145,10 @@ class Provider extends Category implements ProviderInterface
         }
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
         try {
@@ -187,6 +197,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
@@ -203,6 +216,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
@@ -223,6 +239,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function suspend(SuspendParams $params): AccountInfo
     {
@@ -243,12 +262,15 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
         try {
             if (isset($params->is_reseller) && boolval($params->is_reseller)) {
-                throw $this->errorResult('Unsuspend reseller account not supported');
+                $this->errorResult('Unsuspend reseller account not supported');
             }
 
             $this->api()->unsuspendAccount($params->username);
@@ -267,6 +289,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function terminate(AccountUsername $params): EmptyResult
     {
@@ -293,23 +318,29 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
     /**
-     * @throws ProvisionFunctionError
-     * @throws Throwable
+     * @return no-return
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function handleException(Throwable $e, array $data = [], array $debug = [], ?string $message = null): void
     {
@@ -331,7 +362,6 @@ class Provider extends Category implements ProviderInterface
             return $this->api;
         }
 
-        $logger = $this->configuration->debug ? $this->getLogger() : null;
-        return $this->api = new Api($this->configuration, $logger);
+        return $this->api = new Api($this->configuration, $this->getLogger());
     }
 }

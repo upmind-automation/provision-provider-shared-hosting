@@ -11,7 +11,6 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  * 20i Reseller API credentials.
  *
  * @property-read string $general_api_key 20i reseller general api key
- * @property-read bool|null $debug Whether or not to enable debug logging
  */
 class TwentyICredentials extends DataSet
 {
@@ -19,7 +18,6 @@ class TwentyICredentials extends DataSet
     {
         return new Rules([
             'general_api_key' => ['required', 'string'],
-            'debug' => ['boolean'],
         ]);
     }
 }

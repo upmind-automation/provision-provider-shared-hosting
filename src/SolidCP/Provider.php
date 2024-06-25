@@ -34,7 +34,7 @@ class Provider extends Category implements ProviderInterface
     protected const ROLE_USER = 3;
 
     protected Configuration $configuration;
-    protected Api $api;
+    protected Api|null $api = null;
 
     public function __construct(Configuration $configuration)
     {
@@ -52,13 +52,19 @@ class Provider extends Category implements ProviderInterface
             ->setLogoUrl('https://api.upmind.io/images/logos/provision/solidcp-logo.png');
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Random\RandomException
      */
     public function create(CreateParams $params): AccountInfo
     {
@@ -96,6 +102,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function getInfo(AccountUsername $params): AccountInfo
     {
@@ -104,6 +112,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
@@ -140,6 +150,8 @@ class Provider extends Category implements ProviderInterface
      * @param string $username
      * @param string $password
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function updateUserPassword(string $username, string $password)
     {
@@ -155,6 +167,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
@@ -164,6 +178,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
@@ -184,6 +200,8 @@ class Provider extends Category implements ProviderInterface
     }
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function suspend(SuspendParams $params): AccountInfo
     {
@@ -197,6 +215,8 @@ class Provider extends Category implements ProviderInterface
     }
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
@@ -221,6 +241,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
@@ -229,6 +251,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
@@ -237,28 +261,34 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @param int|string $planId
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function findPlan($planId): stdClass
     {
         if (!is_numeric($planId)) {
-            throw $this->errorResult('Package identifier must be a numeric plan ID');
+            $this->errorResult('Package identifier must be a numeric plan ID');
         }
 
         $plan = $this->api()->execute('Packages', 'GetHostingPlan', ['planId' => $planId], 'GetHostingPlanResult');
 
         if (empty((array)$plan)) {
-            throw $this->errorResult('Plan not found');
+            $this->errorResult('Plan not found');
         }
 
         return $plan;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function getInfoResult(string $username, ?string $domainName = null): AccountInfo
     {
         $result = $this->getUserByUsername($username);
         $package = $this->getPackagesByUserId($result->UserId);
 
         $domains = $this->getDomainsByPackageId($package->PackageId);
+        /** @var \stdClass $domain */
         $domain = Arr::first($domains, function ($domain) use ($domainName) {
             return (is_null($domainName) || $domain->DomainName === $domainName)
                 && !empty($domain->ZoneItemId);
@@ -289,6 +319,9 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * Generate a random username from the given domain name.
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Random\RandomException
      */
     protected function generateUsername(string $domain): string
     {
@@ -298,30 +331,39 @@ class Provider extends Category implements ProviderInterface
         return $username . str_pad((string)random_int(1, 99), 2, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function getUserByUsername(string $username): stdClass
     {
         $client_params = ['username' => $username];
         $result = $this->api()->execute('Users', 'GetUserByUsername', $client_params);
 
         if (empty((array)$result)) {
-            throw $this->errorResult(Api::getFriendlyError('-101'));
+            $this->errorResult(Api::getFriendlyError('-101'));
         }
 
         return $result->GetUserByUsernameResult;
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function getPackagesByUsername(string $username): stdClass
     {
         return $this->getPackagesByUserId((int)$this->getUserByUsername($username)->UserId);
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function getPackagesByUserId(int $userId): stdClass
     {
         $client_params = ['userId' => $userId];
         $result = $this->api()->execute('Packages', 'GetMyPackages', $client_params, 'GetMyPackagesResult');
 
         if (empty((array)$result->PackageInfo)) {
-            throw $this->errorResult(Api::getFriendlyError('-300'));
+            $this->errorResult(Api::getFriendlyError('-300'));
         }
 
         return $result->PackageInfo;
@@ -329,6 +371,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @return stdClass[]
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function getDomainsByPackageId(int $packageId): array
     {
@@ -340,6 +384,8 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @return stdClass[]
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     protected function getDnsZoneRecords(int $domainId): array
     {
@@ -349,6 +395,9 @@ class Provider extends Category implements ProviderInterface
             ->DnsRecord ?? [];
     }
 
+    /**
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function changeReseller(string $username, int $roleId, string $message): ResellerPrivileges
     {
         $client_params = $this->getUserByUsername($username);
@@ -364,6 +413,6 @@ class Provider extends Category implements ProviderInterface
 
     protected function api(): Api
     {
-        return $this->api ??= new Api($this->configuration, $this->getLogger((bool)$this->configuration->debug));
+        return $this->api ??= new Api($this->configuration, $this->getLogger());
     }
 }

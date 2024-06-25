@@ -33,7 +33,7 @@ class Api
         $this->configuration = $configuration;
         $this->logger = $logger;
 
-        $timeout = $this->configuration->socket_timeout ?: static::DEFAULT_SOCKET_TIMEOUT;
+        $timeout = $this->configuration->socket_timeout ?: self::DEFAULT_SOCKET_TIMEOUT;
         $this->originalSocketTimeout = (int)ini_get('default_socket_timeout');
         ini_set('default_socket_timeout', (string)$timeout);
     }
@@ -71,6 +71,8 @@ class Api
      * @param string|null $returnProperty Name of the property to check and return from the result, if any
      *
      * @return stdClass|mixed
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function execute(string $service, string $method, array $params, ?string $returnProperty = null)
     {
@@ -84,7 +86,7 @@ class Api
                 $returnResult = $result->$returnProperty;
 
                 if (is_numeric($returnResult) && $returnResult < 0) {
-                    throw $this->errorResult($this->getFriendlyError($returnResult));
+                    $this->errorResult(self::getFriendlyError($returnResult));
                 }
 
                 return $returnResult;
@@ -119,7 +121,7 @@ class Api
                 $errorMessage = 'Unexpected API Usage Error';
             }
 
-            throw $this->errorResult($errorMessage, $errorData, [], $e);
+            $this->errorResult($errorMessage, $errorData, [], $e);
         } finally {
             if (isset($client)) {
                 $this->logLastSoapCall($client, $service, $method);
@@ -184,10 +186,10 @@ class Api
      *
      * @param string $message A user-friendly error message
      * @param mixed[] $data JSONable data to be passed back to the System Client
-     * @param mixed[] $debugData JSONable debug data
+     * @param mixed[] $debug JSONable debug data
      * @param Throwable $previous Previous exception, if any
      *
-     * @throws ProvisionFunctionError
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      *
      * @return no-return
      */

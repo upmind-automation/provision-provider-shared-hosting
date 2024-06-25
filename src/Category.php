@@ -6,7 +6,6 @@ namespace Upmind\ProvisionProviders\SharedHosting;
 
 use Upmind\ProvisionBase\Provider\BaseCategory;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
-use Upmind\ProvisionBase\Provider\DataSet\ResultData;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountInfo;
 use Upmind\ProvisionProviders\SharedHosting\Data\AccountUsage;
 use Upmind\ProvisionProviders\SharedHosting\Data\CreateParams;

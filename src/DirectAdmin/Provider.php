@@ -23,7 +23,6 @@ use Upmind\ProvisionProviders\SharedHosting\Data\GrantResellerParams;
 use Upmind\ProvisionProviders\SharedHosting\Data\LoginUrl;
 use Upmind\ProvisionProviders\SharedHosting\Data\ResellerPrivileges;
 use Upmind\ProvisionProviders\SharedHosting\Data\SuspendParams;
-use Upmind\ProvisionProviders\SharedHosting\Data\UsageData;
 use Upmind\ProvisionProviders\SharedHosting\DirectAdmin\Data\Configuration;
 
 class Provider extends Category implements ProviderInterface
@@ -38,7 +37,7 @@ class Provider extends Category implements ProviderInterface
     protected const STATUS_LIST = ['server', 'shared', 'free'];
 
     /**
-     * @var Api
+     * @var Api|null
      */
     protected $api;
 
@@ -60,15 +59,17 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function create(CreateParams $params): AccountInfo
     {
         $asReseller = boolval($params->as_reseller ?? false);
 
-        if (!$asReseller) {
-            if (!$params->domain) {
-                throw $this->errorResult('Domain name is required');
-            }
+        if (!$asReseller && !$params->domain) {
+            $this->errorResult('Domain name is required');
         }
 
         if (empty($params->custom_ip)) {
@@ -92,9 +93,9 @@ class Provider extends Category implements ProviderInterface
 
             if ($asReseller) {
                 return $this->_getInfo($username, 'Reseller account created');
-            } else {
-                return $this->_getInfo($username, 'Account created');
             }
+
+            return $this->_getInfo($username, 'Account created');
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -109,6 +110,10 @@ class Provider extends Category implements ProviderInterface
         );
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function _getInfo(string $username, string $message): AccountInfo
     {
         $info = $this->api()->getAccountData($username);
@@ -118,6 +123,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function getInfo(AccountUsername $params): AccountInfo
     {
@@ -131,6 +140,11 @@ class Provider extends Category implements ProviderInterface
         }
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
+     */
     public function getUsage(AccountUsername $params): AccountUsage
     {
         try {
@@ -145,6 +159,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function getLoginUrl(GetLoginUrlParams $params): LoginUrl
     {
@@ -162,6 +180,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function changePassword(ChangePasswordParams $params): EmptyResult
     {
@@ -176,6 +198,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function changePackage(ChangePackageParams $params): AccountInfo
     {
@@ -193,6 +219,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function suspend(SuspendParams $params): AccountInfo
     {
@@ -207,6 +237,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function unSuspend(AccountUsername $params): AccountInfo
     {
@@ -221,6 +255,10 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     public function terminate(AccountUsername $params): EmptyResult
     {
@@ -235,41 +273,56 @@ class Provider extends Category implements ProviderInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
     /**
      * @inheritDoc
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
      */
     public function revokeReseller(AccountUsername $params): ResellerPrivileges
     {
-        throw $this->errorResult('Operation not supported');
+        $this->errorResult('Operation not supported');
     }
 
     /**
-     * @throws ProvisionFunctionError
-     * @throws Throwable
+     * @return no-return
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function handleException(Throwable $e): void
     {
-        if ($e instanceof ServerException) {
-            if ($e->hasResponse()) {
-                $response = $e->getResponse();
-                $reason = $response->getReasonPhrase();
-                $responseBody = $response->getBody()->__toString();
-                $responseData = json_decode($responseBody, true);
-                $errorMessage = $responseData['error'] . '. ' . $responseData['result'];
+        if (($e instanceof ServerException) && $e->hasResponse()) {
+            $response = $e->getResponse();
+            $reason = $response->getReasonPhrase();
+            $responseBody = $response->getBody()->__toString();
+            $responseData = json_decode($responseBody, true);
 
-                throw $this->errorResult(
-                    sprintf('Provider API error: %s', $errorMessage ?? $reason ?? null),
-                    [],
-                    ['response_data' => $responseData ?? null],
-                    $e
-                );
+            $errorMessage = null;
+
+            // If we have an error key in the response data, use it as the error message.
+            if (isset($responseData['error'])) {
+                $errorMessage = $responseData['error'] . '. ' . ($responseData['result'] ?? 'N/A Response Result');
             }
+
+            // If still null, set the reason from response reason phrase.
+            if ($errorMessage === null) {
+                $errorMessage = $reason;
+            }
+
+            $this->errorResult(
+                sprintf('Provider API error: %s', empty($errorMessage) ? null : $errorMessage),
+                [],
+                ['response_data' => $responseData ?? null],
+                $e
+            );
         }
 
         // let the provision system handle this one
@@ -293,12 +346,16 @@ class Provider extends Category implements ProviderInterface
             'timeout' => 60,
             'http_errors' => true,
             'allow_redirects' => false,
-            'handler' => $this->getGuzzleHandlerStack(!!$this->configuration->debug),
+            'handler' => $this->getGuzzleHandlerStack(),
         ]);
 
         return $this->api = new Api($client, $this->configuration);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     */
     protected function freeIpByPriority(string $ipStatus): string
     {
         if (empty($ipStatus)) {
@@ -316,6 +373,6 @@ class Provider extends Category implements ProviderInterface
             return $ip;
         }
 
-        throw $this->errorResult('Domain IP is required, no free ips found');
+        $this->errorResult('Domain IP is required, no free ips found');
     }
 }

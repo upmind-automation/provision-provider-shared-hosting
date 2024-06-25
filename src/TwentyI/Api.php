@@ -46,9 +46,10 @@ class Api
      * @param string $email Customer email address
      * @param bool $orFail Whether to throw ProvisionFunctionError if stack user is not found
      *
-     * @throws ProvisionFunctionError If list users request fails
-     *
      * @return string|null Stack user reference, if found
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If list users request fails
+     * @throws \Throwable
      */
     public function searchForStackUser(string $email, bool $orFail = false): ?string
     {
@@ -68,7 +69,7 @@ class Api
 
             return $user ? sprintf('%s:%s', $user->type ?? 'stack-user', $user->id) : null;
         } catch (\Throwable $e) {
-            return $this->handleException($e, 'Could not list stack users', ['email' => $email]);
+            $this->handleException($e, 'Could not list stack users', ['email' => $email]);
         }
     }
 
@@ -77,9 +78,10 @@ class Api
      *
      * @param string $email Customer email address
      *
-     * @throws ProvisionFunctionError If create request fails
-     *
      * @return string Stack user reference E.g., stack-user:12345
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If create request fails
+     * @throws \Throwable
      */
     public function createStackUser(string $email): string
     {
@@ -111,7 +113,7 @@ class Api
 
             return $createResponse->result->ref;
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not create new stack user', ['email' => $email]);
+            $this->handleException($e, 'Could not create new stack user', ['email' => $email]);
         }
     }
 
@@ -121,9 +123,10 @@ class Api
      * @param string $stackUser Stack user reference E.g., stack-user:1235
      * @param string $domain Domain name
      *
-     * @throws ProvisionFunctionError If auth request fails
-     *
      * @return array Login URL and TTL e.g., ['foo.com/login', 86400]
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If auth request fails
+     * @throws \Throwable
      */
     public function getLoginUrl(string $stackUser, ?string $domain): array
     {
@@ -134,7 +137,7 @@ class Api
 
             return [$loginUrl, $tokenInfo->expires_in];
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not obtain login URL', [
+            $this->handleException($e, 'Could not obtain login URL', [
                 'stack_user' => $stackUser,
                 'domain' => $domain,
             ]);
@@ -147,9 +150,10 @@ class Api
      * @param string $stackUser Stack user reference E.g., stack-user:1235
      * @param string $password New password
      *
-     * @throws ProvisionFunctionError If change password request fails
-     *
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If change password request fails
+     * @throws \Throwable
      */
     public function changeStackUserPassword(string $stackUser, string $password): void
     {
@@ -174,9 +178,10 @@ class Api
      *
      * @param string $stackUser Stack user reference E.g., stack-user:1235
      *
-     * @throws ProvisionFunctionError If delete request fails
-     *
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If delete request fails
+     * @throws \Throwable
      */
     public function deleteStackUser(string $stackUser): void
     {
@@ -201,9 +206,10 @@ class Api
      *
      * @param int|string $planId Plan id (package type)
      *
-     * @throws ProvisionFunctionError If plan cannot be found
-     *
      * @return object Plan (package type) info
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If plan cannot be found
+     * @throws \Throwable
      */
     public function getPlanInfo($planId): object
     {
@@ -220,7 +226,7 @@ class Api
 
             return $plan;
         } catch (\Throwable $e) {
-            return $this->handleException($e, 'Could not list plans (package types)', ['plan_id' => $planId]);
+            $this->handleException($e, 'Could not list plans (package types)', ['plan_id' => $planId]);
         }
     }
 
@@ -234,9 +240,10 @@ class Api
      * @param string $locationId Location/data-centre identifier
      * @param string|null $stackUser Stack user reference E.g., stack-user:1235
      *
-     * @throws ProvisionFunctionError|Throwable If create request fails
-     *
      * @return int New hosting package id
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If create request fails
+     * @throws \Throwable
      */
     public function createPackage($planId, string $domain, ?string $locationId = null, ?string $stackUser = null): int
     {
@@ -262,7 +269,7 @@ class Api
 
             return $createResponse->result;
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not create new hosting package', [
+            $this->handleException($e, 'Could not create new hosting package', [
                 'plan_id' => $planId,
                 'domain' => $domain,
                 'location' => $locationId,
@@ -271,18 +278,20 @@ class Api
         }
     }
 
-
     /**
      * List available locations (data centres).
      *
      * @return array<string,string> Map of location ids to location names E.g. ['uk' => 'United Kingdom']
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If create request fails
+     * @throws \Throwable
      */
     public function listDataCentreLocations()
     {
         try {
             return $this->services->getWithFields('/reseller/*/availableDcLocations');
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not list data centre locations');
+            $this->handleException($e, 'Could not list data centre locations');
         }
     }
 
@@ -293,16 +302,17 @@ class Api
      *
      * @param int|string $hostingId Hosting package id
      *
-     * @throws ProvisionFunctionError If get info request fails
-     *
      * @return object Raw api response data
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If get info request fails
+     * @throws \Throwable
      */
     public function getPackageInfo($hostingId): object
     {
         try {
             return $this->services->getWithFields(sprintf('/package/%s', $hostingId));
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not get hosting package info', [
+            $this->handleException($e, 'Could not get hosting package info', [
                 'hosting_id' => $hostingId,
             ]);
         }
@@ -315,16 +325,17 @@ class Api
      *
      * @param int|string $hostingId Hosting package id
      *
-     * @throws ProvisionFunctionError If get info request fails
-     *
      * @return object Raw api response data
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If get info request fails
+     * @throws \Throwable
      */
     public function getPackageLimits($hostingId): object
     {
         try {
             return $this->services->getWithFields(sprintf('/package/%s/web/limits', $hostingId));
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not get hosting package limits', [
+            $this->handleException($e, 'Could not get hosting package limits', [
                 'hosting_id' => $hostingId,
             ]);
         }
@@ -337,16 +348,17 @@ class Api
      *
      * @param int|string $hostingId Hosting package id
      *
-     * @throws ProvisionFunctionError If get info request fails
-     *
      * @return object Raw api response data
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If get info request fails
+     * @throws \Throwable
      */
     public function getPackageUsage($hostingId): object
     {
         try {
             return $this->services->getWithFields(sprintf('/package/%s/web/usage', $hostingId));
         } catch (Throwable $e) {
-            return $this->handleException($e, 'Could not get hosting package usage', [
+            $this->handleException($e, 'Could not get hosting package usage', [
                 'hosting_id' => $hostingId,
             ]);
         }
@@ -360,9 +372,10 @@ class Api
      * @param int|string $hostingId Hosting package id
      * @param int|string $planId New plan (package type) id
      *
-     * @throws ProvisionFunctionError If change plan request fails
-     *
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If change plan request fails
+     * @throws \Throwable
      */
     public function changePackagePlan($hostingId, $planId): void
     {
@@ -391,9 +404,10 @@ class Api
      *
      * @param int|string $hostingId Hosting package id
      *
-     * @throws ProvisionFunctionError If disable request fails
-     *
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If disable request fails
+     * @throws \Throwable
      */
     public function disablePackage($hostingId): void
     {
@@ -418,9 +432,10 @@ class Api
      *
      * @param int|string $hostingId Hosting package id
      *
-     * @throws ProvisionFunctionError If enable request fails
-     *
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If enable request fails
+     * @throws \Throwable
      */
     public function enablePackage($hostingId): void
     {
@@ -445,9 +460,10 @@ class Api
      *
      * @param int|string $hostingId Hosting package id
      *
-     * @throws ProvisionFunctionError If delete request fails
-     *
      * @return void
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If delete request fails
+     * @throws \Throwable
      */
     public function terminatePackage($hostingId): void
     {
@@ -469,9 +485,10 @@ class Api
      * Wrap StackCP reseller api exceptions in a ProvisionFunctionError with the
      * given message and data, if appropriate. Otherwise re-throws original error.
      *
-     * @throws ProvisionFunctionError|Throwable
-     *
      * @return no-return
+     *
+     * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
+     * @throws \Throwable
      */
     protected function handleException(Throwable $e, ?string $errorMessage = null, array $data = [], array $debug = [])
     {
