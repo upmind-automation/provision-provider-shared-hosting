@@ -75,6 +75,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
  - [Codeline](https://github.com/CodelineNL)
  - [Nikolay Bogdanov](https://github.com/nikolay-mocha)
  - [Ana Carrasco](https://github.com/AnaGema)
+ - [Roussetos Karafyllakis](https://github.com/RoussKS)
  - [All Contributors](../../contributors)
 
 ## License
