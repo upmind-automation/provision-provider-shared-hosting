@@ -1180,19 +1180,16 @@ class Provider extends Category implements ProviderInterface
     }
 
     /**
-     * Get a guzzle handler stack which logs requests/responses if provider is
-     * an instance of LogsDebugData and $debugLog === true. Requests and responses
+     * Get a guzzle handler stack which logs requests/responses. These
      * will also be stored in $this->guzzleHistory.
+     *
+     * @param bool $debugLog @deprecated To be removed in a future version
      */
     protected function getGuzzleHandlerStack(bool $debugLog = false): HandlerStack
     {
         $stack = HandlerStack::create();
 
         $stack->push(Middleware::history($this->guzzleHistory));
-
-        if (!$debugLog) {
-            return $stack;
-        }
 
         // Rewinds HTTP message body seek position after the stream has been read by Logger middleware
         $rewindMessageBody = function (MessageInterface $message) {
