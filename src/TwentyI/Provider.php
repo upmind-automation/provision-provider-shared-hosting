@@ -243,7 +243,7 @@ class Provider extends SharedHosting implements ProviderInterface
 
         $domain = $info->web->name;
         $ip = $info->web->info->ip4Address ?? null;
-        $serverHost = $ip;
+        $serverHost = $ip ?? 'unknown.host';
         $packageName = $info->web->typeRef;
         $suspended = !$info->status;
         $suspendReason = null;
