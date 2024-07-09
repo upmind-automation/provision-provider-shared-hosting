@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.7.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.1) - 2024-07-09
+
+- Update TwentyI/Api::searchForStackUser() with an initial call to attempt to create the stack user before searching for it
+
 ## [v6.7.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.0) - 2024-06-25
 
 - Update for PHP 8.1
