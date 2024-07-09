@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.3) - 2024-07-09
+
+- Update TwentyI/Api::searchForStackUser() with an initial call to attempt to create the stack user before searching for it
+
 ## [v6.6.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.2) - 2024-05-31
 
 - Update TwentyI\Api::searchForStackUser() to use new explicitStackUser endpoint to improve performance for larger reseller accounts
