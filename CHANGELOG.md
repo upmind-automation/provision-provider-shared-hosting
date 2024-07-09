@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.5](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.5) - 2024-07-09
+
+- Fix TwentyI\Provider::getAccountInfoData() type error when IP is unknown
+
 ## [v6.6.4](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.4) - 2024-07-09
 
 - Update TwentyI/Provider::getAccountInfoData() fix php error when web.info is missing
