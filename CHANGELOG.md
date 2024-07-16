@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.7.5](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.5) - 2024-07-16
+
+- Update TwentyI/Data/TwentyICredentials add control_panel_hostname to return in GetInfo for server hostname
+
 ## [v6.7.4](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.4) - 2024-07-16
 
 - Update TwentyI/Api::searchForStackUser() to use new explicitStackUserCheck endpoint
