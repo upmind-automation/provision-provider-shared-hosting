@@ -12,6 +12,7 @@ use Upmind\ProvisionBase\Provider\DataSet\Rules;
  *
  * @property-read string $general_api_key 20i reseller general api key
  * @property-read bool|null $debug Whether or not to enable debug logging
+ * @property-read string|null $control_panel_hostname 20i reseller control panel hostname
  */
 class TwentyICredentials extends DataSet
 {
@@ -20,6 +21,7 @@ class TwentyICredentials extends DataSet
         return new Rules([
             'general_api_key' => ['required', 'string'],
             'debug' => ['boolean'],
+            'control_panel_hostname' => ['nullable', 'domain_name'],
         ]);
     }
 }
