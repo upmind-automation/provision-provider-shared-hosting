@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.6](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.6) - 2024-07-16
+
+- Update TwentyI/Api::searchForStackUser() to use new explicitStackUserCheck endpoint
+- Fix TwentyI/Api::getPackageInfo(): trim $hostingId to prevent cURL errors due to whitespace
+- Update TwentyI/Api::handleException() to append result error message if available
+
 ## [v6.6.5](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.5) - 2024-07-09
 
 - Fix TwentyI\Provider::getAccountInfoData() type error when IP is unknown
