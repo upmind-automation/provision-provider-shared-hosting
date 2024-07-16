@@ -309,7 +309,7 @@ class Api
     public function getPackageInfo($hostingId): object
     {
         try {
-            return $this->services->getWithFields(sprintf('/package/%s', $hostingId));
+            return $this->services->getWithFields(sprintf('/package/%s', trim((string)$hostingId)));
         } catch (Throwable $e) {
             return $this->handleException($e, 'Could not get hosting package info', [
                 'hosting_id' => $hostingId,
