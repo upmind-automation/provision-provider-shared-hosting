@@ -520,6 +520,10 @@ class Api
         }
 
         if ($e instanceof HTTPException) {
+            if (!empty($e->decodedBody->error->message)) {
+                $errorMessage .= ': ' . $e->decodedBody->error->message;
+            }
+
             $data['request_url'] = $e->fullURL;
             $data['response_data'] = $e->decodedBody;
         }
