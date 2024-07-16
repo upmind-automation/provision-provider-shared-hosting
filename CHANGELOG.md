@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.7.4](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.4) - 2024-07-16
+
+- Update TwentyI/Api::searchForStackUser() to use new explicitStackUserCheck endpoint
+- Fix TwentyI/Api::getPackageInfo(): trim $hostingId to prevent cURL errors due to whitespace
+- Update TwentyI/Api::handleException() to append result error message if available
 
 ## [v6.7.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.3) - 2024-07-09
 
@@ -20,6 +25,12 @@ All notable changes to the package will be documented in this file.
 - Update for PHP 8.1
 - Update base lib to v4
 - Update 20i SDK to v1.1
+
+## [v6.6.6](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.6) - 2024-07-16
+
+- Update TwentyI/Api::searchForStackUser() to use new explicitStackUserCheck endpoint
+- Fix TwentyI/Api::getPackageInfo(): trim $hostingId to prevent cURL errors due to whitespace
+- Update TwentyI/Api::handleException() to append result error message if available
 
 ## [v6.6.5](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.5) - 2024-07-09
 
