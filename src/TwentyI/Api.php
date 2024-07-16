@@ -53,29 +53,15 @@ class Api
     public function searchForStackUser(string $email, bool $orFail = false): ?string
     {
         try {
-            // Attempt to create a new stack user first, and upon exception, search for existing user.
-            // We do this because for large resellers, the list of users can be VERY large and requests can time-out.
-            // For new customers at least, this should speed things up dramatically and avoid unnecessary time-outs.
-            try {
-                return $this->createStackUser($email);
-            } catch (\Throwable $e) {
-                // ignore
-            }
-
-            // "list all + filter results" appears to be the only way to find a user
-            // $allUsers = $this->services->getWithFields('/reseller/*/susers')->users;
-            $allUsers = $this->services->getWithFields('/reseller/*/explicitStackUser', [
-                // 'name' => $email,
-            ]);
-            $user = Arr::first($allUsers, function ($user) use ($email) {
-                return ($user->email ?? $user->name) === $email;
-            });
+            $user = $this->services->postWithFields('/reseller/*/explicitStackUserCheck', [
+                'email' => $email,
+            ])->result ?? null;
 
             if (!$user && $orFail) {
                 throw (new ProvisionFunctionError('Stack user not found'))->withData(['email' => $email]);
             }
 
-            return $user ? sprintf('%s:%s', $user->type ?? 'stack-user', $user->id) : null;
+            return $user;
         } catch (\Throwable $e) {
             return $this->handleException($e, 'Could not list stack users', ['email' => $email]);
         }
