@@ -109,7 +109,8 @@ class Api
             'passwd2' => $password,
             'domain' => $params->domain,
             'package' => $params->package_name,
-            'ip' => $customIp
+            'ip' => $customIp,
+            'notify' => $this->configuration->direct_admin_notify_on_create ? 'yes' : 'no',
         ];
 
         $this->makeRequest($command, null, $query, self::METHOD_POST);
