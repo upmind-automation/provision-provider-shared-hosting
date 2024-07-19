@@ -129,7 +129,7 @@ class Api
 
     public function getUserConfig(string $username): array
     {
-        return $this->makeRequest(self::COMMAND_SHOW_INFO, ['user' => $username]);
+        return $this->makeRequest(self::COMMAND_SHOW_INFO, ['user' => trim($username)]);
     }
 
     public function suspendAccount(string $username): void
