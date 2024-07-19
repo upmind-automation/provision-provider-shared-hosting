@@ -350,7 +350,7 @@ class Provider extends Category implements ProviderInterface
         $credentials = base64_encode("{$this->configuration->username}:{$this->configuration->password}");
 
         $client = new Client([
-            'base_uri' => sprintf('https://%s:2222', $this->configuration->hostname),
+            'base_uri' => sprintf('https://%s:%s', $this->configuration->hostname, $this->configuration->port ?? 2222),
             'headers' => [
                 'Authorization' => ['Basic ' . $credentials],
             ],
