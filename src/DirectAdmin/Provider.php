@@ -8,6 +8,9 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ServerException;
 use Throwable;
 use Carbon\Carbon;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\TransferException;
+use Illuminate\Support\Str;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionBase\Provider\DataSet\AboutData;
 use Upmind\ProvisionProviders\SharedHosting\Category;
@@ -255,20 +258,38 @@ class Provider extends Category implements ProviderInterface
      */
     protected function handleException(Throwable $e): void
     {
-        if ($e instanceof ServerException) {
-            if ($e->hasResponse()) {
+        if ($e instanceof TransferException) {
+            if (($e instanceof ServerException) && $e->hasResponse()) {
                 $response = $e->getResponse();
                 $reason = $response->getReasonPhrase();
                 $responseBody = $response->getBody()->__toString();
                 $responseData = json_decode($responseBody, true);
-                $errorMessage = $responseData['error'] . '. ' . $responseData['result'];
 
-                throw $this->errorResult(
-                    sprintf('Provider API error: %s', $errorMessage ?? $reason ?? null),
+                $errorMessage = null;
+
+                // If we have an error key in the response data, use it as the error message.
+                if (isset($responseData['error'])) {
+                    $errorMessage = $responseData['error'] . '. ' . ($responseData['result'] ?? 'N/A Response Result');
+                }
+
+                // If still null, set the reason from response reason phrase.
+                if ($errorMessage === null) {
+                    $errorMessage = $reason;
+                }
+
+                $this->errorResult(
+                    sprintf('Provider API error: %s', empty($errorMessage) ? null : $errorMessage),
                     [],
                     ['response_data' => $responseData ?? null],
                     $e
                 );
+            }
+
+            if (Str::contains($e->getMessage(), 'cURL error')) {
+                $this->errorResult('Provider API connection error', [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]);
             }
         }
 
