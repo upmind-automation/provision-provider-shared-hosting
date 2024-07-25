@@ -860,7 +860,6 @@ class Provider extends SharedHosting implements ProviderInterface
             $data = [
                 'function' => $function,
             ];
-            $debug = [];
 
             if ($e instanceof TransferException) {
                 if ($e instanceof RequestException && $e->hasResponse()) {
@@ -874,7 +873,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     $data['result_data'] = $resultData;
 
                     if (!$resultData) {
-                        $debug['response_body'] = Str::limit($responseBody, 500);
+                        $data['response_body'] = Str::limit($responseBody, 500);
                     }
                 } else {
                     $message = 'WHM API Connection Error';
@@ -885,7 +884,7 @@ class Provider extends SharedHosting implements ProviderInterface
                     $message = 'WHM API Request Timeout';
                 }
 
-                return $this->errorResult($message, $data, $debug, $e);
+                $this->errorResult($message, $data, [], $e);
             }
 
             throw $e;
@@ -910,13 +909,12 @@ class Provider extends SharedHosting implements ProviderInterface
         }
 
         $data = ['http_code' => $http_code, 'result_data' => $result_data, 'result_meta' => $result_meta];
-        $debug = [];
 
         if (empty($result_data)) {
-            $debug['response_body'] = Str::limit($response->getPsr7()->getBody()->__toString(), 300);
+            $data['response_body'] = Str::limit($response->getPsr7()->getBody()->__toString(), 300);
         }
 
-        return $this->errorResult('WHM API Error: ' . $message, $data, $debug);
+        $this->errorResult('WHM API Error: ' . $message, $data);
     }
 
     protected function getSoftaculous(string $username, string $password): SoftaculousSdk
