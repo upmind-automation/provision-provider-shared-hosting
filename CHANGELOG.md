@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.10](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.10) - 2024-07-25
+
+- Update WHMv1/Provider::processResponse() return response_body in result data when response_data is empty
+
 ## [v6.6.9](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.9) - 2024-07-19
 
 - Update DirectAdmin add configuration value to notify client upon account creation
