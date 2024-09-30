@@ -147,6 +147,11 @@ class Provider extends SharedHosting implements ProviderInterface
 
         [$loginUrl, $ttl] = $this->api()->getLoginUrl($stackUser, $info->web->name);
 
+        if (Str::startsWith($loginUrl, 'http://')) {
+            // force HTTPS
+            $loginUrl = Str::replaceFirst('http://', 'https://', $loginUrl);
+        }
+
         return LoginUrl::create()
             ->setLoginUrl($loginUrl)
             ->setExpires(Carbon::now()->addSeconds($ttl))
