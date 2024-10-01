@@ -64,7 +64,6 @@ class Provider extends Category implements ProviderInterface
      * @inheritDoc
      *
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
-     * @throws \Random\RandomException
      */
     public function create(CreateParams $params): AccountInfo
     {
@@ -321,7 +320,6 @@ class Provider extends Category implements ProviderInterface
      * Generate a random username from the given domain name.
      *
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError
-     * @throws \Random\RandomException
      */
     protected function generateUsername(string $domain): string
     {
