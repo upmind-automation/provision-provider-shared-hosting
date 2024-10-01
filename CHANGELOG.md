@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.11](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.11) - 2024-09-30
+
+- Update 20i getLoginUrl() to always return a HTTPS link
+
 ## [v6.6.10](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.10) - 2024-07-25
 
 - Update WHMv1/Provider::processResponse() return response_body in result data when response_data is empty
