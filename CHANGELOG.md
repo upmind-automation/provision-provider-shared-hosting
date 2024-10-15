@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.7.10](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.10) - 2024-10-15
+
+- Update Plesk
+  - Add API request/response debug logging
+  - Ignore errors fetching NS when DNS service is not enabled during getInfo()
+
 ## [v6.7.9](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.7.9) - 2024-09-30
 
 - Update 20i getLoginUrl() to always return a HTTPS link
@@ -47,6 +53,12 @@ All notable changes to the package will be documented in this file.
 - Update for PHP 8.1
 - Update base lib to v4
 - Update 20i SDK to v1.1
+
+## [v6.6.12](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.12) - 2024-10-15
+
+- Update Plesk
+  - Add API request/response debug logging
+  - Ignore errors fetching NS when DNS service is not enabled during getInfo()
 
 ## [v6.6.11](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.11) - 2024-09-30
 
