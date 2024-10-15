@@ -49,6 +49,8 @@ class Client extends PleskClient
 
     /**
      * @inheritDoc
+     *
+     * @param XmlResponse|string|mixed $xml
      */
     protected function _verifyResponse($xml)
     {
