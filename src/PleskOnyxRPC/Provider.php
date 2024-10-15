@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionBase\Helper;
-use PleskX\Api\Client;
+use Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Api\Client;
 use PleskX\Api\Exception as PleskException;
 use PleskX\Api\Client\Exception as PleskClientException;
 use PleskX\Api\XmlResponse;
@@ -1185,6 +1185,8 @@ class Provider extends SharedHosting implements ProviderInterface
         } else {
             $client->setCredentials($admin_username, $admin_password);
         }
+
+        $client->setLogger($this->getLogger());
 
         return $this->client = $client;
     }
