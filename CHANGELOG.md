@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.13](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.13) - 2024-11-11
+
+- Update Enhance findPlan() and findServerGroup() to match name case-insensitively
+
 ## [v6.6.12](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.12) - 2024-10-15
 
 - Update Plesk
