@@ -813,7 +813,7 @@ class Provider extends Category implements ProviderInterface
                     return $plan;
                 }
 
-                if (is_string($packageName) && $packageName === trim($plan->getName())) {
+                if (is_string($packageName) && strtolower($packageName) === trim(strtolower($plan->getName()))) {
                     return $plan;
                 }
             }
@@ -915,7 +915,8 @@ class Provider extends Category implements ProviderInterface
         /** @var ServerGroup $validGroup */
         $validGroup = null;
         foreach ($groups->getItems() ?? [] as $group) {
-            if ($group->getId() === $location || $group->getName() === $location) {
+            if ($group->getId() === $location || strtolower($group->getName()) === strtolower($location)) {
+                /** @var ServerGroup $validGroup */
                 $validGroup = $group;
                 break;
             }
