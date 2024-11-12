@@ -2,6 +2,11 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.14](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.14) - 2024-11-12
+
+- Update 20i to send additional customer data when creating stack users
+  - Attempt to update newly created stack users with name, address and phone number (in EPP format)
+
 ## [v6.6.13](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.13) - 2024-11-11
 
 - Update Enhance findPlan() and findServerGroup() to match name case-insensitively
