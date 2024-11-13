@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.8.1](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.8.1) - 2024-11-13
+
+- Fix CustomerAddressParams make all optional to avoid errors for partial data
+
 ## [v6.8.0](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.8.0) - 2024-11-12
 
 - Update 20i to send additional customer data when creating stack users
@@ -62,6 +66,10 @@ All notable changes to the package will be documented in this file.
 - Update for PHP 8.1
 - Update base lib to v4
 - Update 20i SDK to v1.1
+
+## [v6.6.15](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.15) - 2024-11-13
+
+- Fix CustomerAddressParams make all optional to avoid errors for partial data
 
 ## [v6.6.14](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.14) - 2024-11-12
 
