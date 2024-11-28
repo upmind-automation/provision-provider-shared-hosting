@@ -6,11 +6,13 @@ namespace Upmind\ProvisionProviders\SharedHosting\TwentyI;
 
 use ErrorException;
 use Illuminate\Support\Arr;
+use libphonenumber\PhoneNumberUtil;
 use Psr\Log\LoggerInterface;
 use Throwable;
 use TwentyI\API\CurlException;
 use TwentyI\API\HTTPException;
 use Upmind\ProvisionBase\Exception\ProvisionFunctionError;
+use Upmind\ProvisionProviders\SharedHosting\Data\CustomerAddressParams;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Authentication;
 use Upmind\ProvisionProviders\SharedHosting\TwentyI\Api\Services;
 
@@ -72,33 +74,34 @@ class Api
      * Create a new stack user, returning the new stack user reference.
      *
      * @param string $email Customer email address
+     * @param string|null $customerName Customer name
+     * @param string|null $customerRef Customer reference
+     * @param string|null $address1 Customer address line 1
+     * @param string|null $city Customer city
+     * @param string|null $postcode Customer postcode
+     * @param string|null $countryCode Customer country code
      *
      * @return string Stack user reference E.g., stack-user:12345
      *
      * @throws \Upmind\ProvisionBase\Exception\ProvisionFunctionError If create request fails
      * @throws \Throwable
      */
-    public function createStackUser(string $email): string
-    {
+    public function createStackUser(
+        string $email,
+        ?string $customerName,
+        ?string $customerRef,
+        ?string $address1,
+        ?string $city,
+        ?string $postcode,
+        ?string $countryCode,
+        ?string $internationalPhone
+    ): string {
         try {
+            $internationalPhone = $this->internationalPhoneToEpp($internationalPhone);
+
             $createResponse = $this->services->postWithFields('/reseller/*/susers', [
                 "newUser" => [
-                    // "person_name" => $email,
                     "email" => $email,
-                    "sendNewStackUserEmail" => false
-                    // "company_name" => $domain,
-                    // "address" => implode("\n", array_filter([
-                    //     $user_info["address1"],
-                    //     $user_info["address2"],
-                    // ])),
-                    // "city" => $user_info["city"],
-                    // "sp" => $user_info["state"],
-                    // "pc" => $user_info["postcode"],
-                    // "cc" => $user_info["country"],
-                    // "voice" => @$user_info["phonenumberformatted"] ?: $user_info["phonenumber"],
-                    // "notes" => $domain,
-                    // "billing_ref" => null,
-                    // "nominet_contact_type" => null,
                 ],
             ]);
 
@@ -106,9 +109,64 @@ class Api
                 throw HTTPException::create('/reseller/*/susers', $createResponse, 409);
             }
 
-            return $createResponse->result->ref;
+            try {
+                // attempt to update stack user with their full details
+                $this->updateStackUser(
+                    $createResponse->result->ref,
+                    $email,
+                    $customerName,
+                    $customerRef,
+                    $address1,
+                    $city,
+                    $postcode,
+                    $countryCode,
+                    $internationalPhone
+                );
+            } finally {
+                // ignore any errors updating the stack user
+                return $createResponse->result->ref;
+            }
         } catch (Throwable $e) {
             $this->handleException($e, 'Could not create new stack user', ['email' => $email]);
+        }
+    }
+
+    /**
+     * Update an existing stack user.
+     */
+    public function updateStackUser(
+        string $userRef,
+        string $email,
+        ?string $customerName,
+        ?string $customerRef,
+        ?string $address1,
+        ?string $city,
+        ?string $postcode,
+        ?string $countryCode,
+        ?string $internationalPhone
+    ): void {
+        try {
+            $this->services->postWithFields("/reseller/*/susers", [
+                "contact" => [
+                    $userRef => [
+                        "person_name" => $customerName,
+                        "email" => $email,
+                        // "sendNewStackUserEmail" => true,
+                        // "company_name" => '',
+                        "address" => $address1,
+                        "city" => $city,
+                        "sp" => $city,
+                        "pc" => $postcode,
+                        "cc" => $countryCode,
+                        "voice" => $internationalPhone,
+                        // "notes" => $domain,
+                        "billing_ref" => $customerRef,
+                        "nominet_contact_type" => 'IND',
+                    ],
+                ]
+            ]);
+        } catch (Throwable $e) {
+            $this->handleException($e, 'Could not update stack user', ['stack_user' => $userRef]);
         }
     }
 
@@ -582,5 +640,32 @@ class Api
     {
         return $e instanceof CurlException
             && preg_match('/(^|[^\w])timed out([^\w]|$)/i', $e->getMessage());
+    }
+
+    /**
+     * Convert a phone from "international format" (beginning with `+` and intl
+     * dialling code) to "EPP format" described in RFC5733. To validate a phone
+     * number is in valid international format, you can use the provided
+     * `international_phone` rule.
+     *
+     * @link https://tools.ietf.org/html/rfc5733#section-2.5
+     *
+     * @param string|null $number Phone number in "international format" E.g., +447515878251
+     *
+     * @return string|null Phone number in "EPP format" E.g., +44.7515878251
+     *
+     * @throws \libphonenumber\NumberParseException If not a valid international phone number
+     */
+    protected function internationalPhoneToEpp(?string $number): ?string
+    {
+        if (empty($number)) {
+            return null;
+        }
+
+        $phone = PhoneNumberUtil::getInstance()->parse($number, null);
+        $diallingCode = $phone->getCountryCode();
+        $nationalNumber = $phone->getNationalNumber();
+
+        return sprintf('+%s.%s', $diallingCode, $nationalNumber);
     }
 }

@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use Upmind\ProvisionBase\Provider\Contract\ProviderInterface;
 use Upmind\ProvisionProviders\SharedHosting\Category as SharedHosting;
 use Upmind\ProvisionBase\Helper;
-use PleskX\Api\Client;
+use Upmind\ProvisionProviders\SharedHosting\PleskOnyxRPC\Api\Client;
 use PleskX\Api\Exception as PleskException;
 use PleskX\Api\Client\Exception as PleskClientException;
 use PleskX\Api\XmlResponse;
@@ -465,7 +465,14 @@ class Provider extends SharedHosting implements ProviderInterface
                 $customerInfo = $this->getCustomerInfo($client, $customerId);
                 $username = $customerInfo->data->gen_info->getValue('login');
                 $ipAddress = $webspaceInfo->data->gen_info->getValue('dns_ip_address');
-                $domainNameServers = $this->getDnsRecords($client, $domainInfo->getValue('id'), 'NS');
+                $domainNameServers = [];
+                try {
+                    $domainNameServers = $this->getDnsRecords($client, $domainInfo->getValue('id'), 'NS');
+                } catch (Throwable $e) {
+                    if (!Str::contains($e->getMessage(), 'DNS service is not enabled')) {
+                        throw $e;
+                    }
+                }
 
                 if ($subscriptionPlan = $webspaceInfo->data->subscriptions->subscription->plan ?? null) {
                     $planInfo = $this->getPlanInfo($client, $subscriptionPlan->getValue('plan-guid'));
@@ -514,12 +521,19 @@ class Provider extends SharedHosting implements ProviderInterface
             $domainInfo = $client->customer()->request($domainRequest, Client::RESPONSE_FULL);
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
             $webspaceInfo = $client->webspace()->request($webspaceRequest);
+            $domainNameServers = [];
 
-            $domainNameServers = $this->extractNameServers(
-                (string)$webspaceInfo->data->gen_info->name,
-                $domainInfo['customer']['get-domain-list']['result']['domains'],
-                $client
-            );
+            try {
+                $domainNameServers = $this->extractNameServers(
+                    (string)$webspaceInfo->data->gen_info->name,
+                    $domainInfo['customer']['get-domain-list']['result']['domains'],
+                    $client
+                );
+            } catch (Throwable $e) {
+                if (!Str::contains($e->getMessage(), 'DNS service is not enabled')) {
+                    throw $e;
+                }
+            }
 
             $subscriptions = json_decode(json_encode($webspaceInfo->data->{'subscriptions'}, JSON_PRETTY_PRINT), true);
             $servicePlanRequest = [
@@ -586,11 +600,19 @@ class Provider extends SharedHosting implements ProviderInterface
             $webSpaceInfo = $client->webspace()->request($webspaceRequest);
             $domainInfo = $client->reseller()->request($domainRequest, Client::RESPONSE_FULL);
             $domainInfo = json_decode(json_encode($domainInfo, JSON_PRETTY_PRINT), true);
-            $domainNameServers = $this->extractNameServers(
-                (string)$webSpaceInfo->data->gen_info->name,
-                $domainInfo['reseller']['get-domain-list']['result']['domains'],
-                $client
-            );
+            $domainNameServers = [];
+
+            try {
+                $domainNameServers = $this->extractNameServers(
+                    (string)$webSpaceInfo->data->gen_info->name,
+                    $domainInfo['reseller']['get-domain-list']['result']['domains'],
+                    $client
+                );
+            } catch (Throwable $e) {
+                if (!Str::contains($e->getMessage(), 'DNS service is not enabled')) {
+                    throw $e;
+                }
+            }
 
             return AccountInfo::create(
                 [
@@ -1185,6 +1207,8 @@ class Provider extends SharedHosting implements ProviderInterface
         } else {
             $client->setCredentials($admin_username, $admin_password);
         }
+
+        $client->setLogger($this->getLogger());
 
         return $this->client = $client;
     }
