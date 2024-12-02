@@ -156,8 +156,8 @@ class Provider extends Category implements ProviderInterface
 
             return LoginUrl::create()
                 ->setLoginUrl($loginUrl)
-                ->setExpires(Carbon::now()->addMinutes(30))
-                ->setForIp($params->user_ip);
+                // ->setForIp($params->user_ip)
+                ->setExpires(Carbon::now()->addMinutes(30));
         } catch (Throwable $e) {
             $this->handleException($e);
         }
