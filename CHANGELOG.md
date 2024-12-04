@@ -2,6 +2,12 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.8.4](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.8.4) - 2024-12-04
+
+- Update Enhance getInfo()
+  - Increase page size during findCustomerIdByEmail() to improve speed for larger organisations
+  - Handle cases where website is not associated with a subscription
+
 ## [v6.8.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.8.3) - 2024-12-04
 
 - Update WHMv1 create() add additional debug data to error results
