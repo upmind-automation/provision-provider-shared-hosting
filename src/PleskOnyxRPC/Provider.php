@@ -1115,7 +1115,8 @@ class Provider extends SharedHosting implements ProviderInterface
      * @param string $plan Id or Name of the plan
      * @param string $type Type of plan i.e., service or reseller
      *
-     * @throws PleskException If plan doesn't exist
+     * @throws PleskException
+     * @throws PleskClientException
      *
      * @return XmlResponse
      */
