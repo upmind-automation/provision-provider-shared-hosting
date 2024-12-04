@@ -396,7 +396,7 @@ class Provider extends Category implements ProviderInterface
     protected function findCustomerIdByEmail(string $email): string
     {
         $offset = 0;
-        $limit = 20;
+        $limit = 500;
 
         do {
             $customers = $this->api()->customers()->getOrgCustomers($this->configuration->org_id, $offset, $limit);
@@ -426,6 +426,14 @@ class Provider extends Category implements ProviderInterface
         if (!$website && !empty($domain)) {
             // deleted domain - try again with no domain name
             $website = $this->findWebsite($customerId, $subscriptionId, null, false);
+        }
+
+        $subscriptionId = $subscriptionId ?? $website->getSubscriptionId();
+        if (empty($subscriptionId)) {
+            $this->errorResult('Website not associated with a subscription', [
+                'customer_id' => $customerId,
+                'website' => $website->jsonSerialize(),
+            ]);
         }
 
         $subscription = $this->api()->subscriptions()
