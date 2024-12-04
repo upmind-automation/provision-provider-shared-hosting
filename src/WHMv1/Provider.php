@@ -198,6 +198,11 @@ class Provider extends SharedHosting implements ProviderInterface
                     if ($createException instanceof ProvisionFunctionError) {
                         throw $createException->withData(array_merge($createException->getData(), [
                             'get_info_error_after_timeout' => $getInfoException->getMessage(),
+                            'params' => [
+                                'username' => $username,
+                                'domain' => $domain,
+                                'password' => $password,
+                            ],
                         ]));
                     }
                 }
@@ -211,38 +216,49 @@ class Provider extends SharedHosting implements ProviderInterface
 
     protected function finishCreate(CreateParams $params, string $domain, string $username, string $password): AccountInfo
     {
-        $info = $this->getAccountInfo($username)
-            ->setMessage('Account created');
+        try {
+            $info = $this->getAccountInfo($username)
+                ->setMessage('Account created');
 
-        if ($info->reseller && $params->reseller_options) {
-            try {
-                $this->changeResellerOptions($username, $params->reseller_options);
-            } catch (\Throwable $e) {
-                // clean-up
-                $this->deleteAccount($username);
+            if ($info->reseller && $params->reseller_options) {
+                try {
+                    $this->changeResellerOptions($username, $params->reseller_options);
+                } catch (\Throwable $e) {
+                    // clean-up
+                    $this->deleteAccount($username);
 
-                throw $e;
-            }
-        }
-
-        if ($this->configuration->softaculous_install) {
-            try {
-                $softaculous = $this->getSoftaculous($username, $password);
-
-                if ($this->configuration->softaculous_install === 'wordpress') {
-                    $installation = $softaculous->installWordpress($domain, $params->email);
+                    throw $e;
                 }
-
-                $info->setSoftware($installation);
-            } catch (\Throwable $e) {
-                // clean-up
-                $this->deleteAccount($username);
-
-                throw $e;
             }
-        }
 
-        return $info;
+            if ($this->configuration->softaculous_install) {
+                try {
+                    $softaculous = $this->getSoftaculous($username, $password);
+
+                    if ($this->configuration->softaculous_install === 'wordpress') {
+                        $installation = $softaculous->installWordpress($domain, $params->email);
+                    }
+
+                    $info->setSoftware($installation);
+                } catch (\Throwable $e) {
+                    // clean-up
+                    $this->deleteAccount($username);
+
+                    throw $e;
+                }
+            }
+
+            return $info;
+        } catch (ProvisionFunctionError $e) {
+            $errorData = $e->getData();
+            $errorData['params'] = [
+                'username' => $username,
+                'domain' => $domain,
+                'password' => $password,
+            ];
+
+            throw $e->withData($errorData);
+        }
     }
 
     public function grantReseller(GrantResellerParams $params): ResellerPrivileges
