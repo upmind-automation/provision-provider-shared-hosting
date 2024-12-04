@@ -2,6 +2,10 @@
 
 All notable changes to the package will be documented in this file.
 
+## [v6.6.17](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.17) - 2024-12-04
+
+- Update WHMv1 create() add additional debug data to error results
+
 ## [v6.6.16](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.6.16) - 2024-12-02
 
 - Fix getLoginUrl() for newer versions of DirectAdmin
