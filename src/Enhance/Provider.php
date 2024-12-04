@@ -487,7 +487,7 @@ class Provider extends Category implements ProviderInterface
         }
 
         $subscription = $this->api()->subscriptions()
-            ->getSubscription($customerId, $subscriptionId ?? $website->getSubscriptionId());
+            ->getSubscription($customerId, $subscriptionId);
 
         if ($subscription->getStatus() == Status::DELETED) {
             $this->errorResult('Subscription terminated', ['subscription' => $subscription->jsonSerialize()]);
