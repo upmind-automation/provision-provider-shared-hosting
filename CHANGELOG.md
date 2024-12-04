@@ -2,7 +2,7 @@
 
 All notable changes to the package will be documented in this file.
 
-## [v6.8.2](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.8.2) - 2024-12-04
+## [v6.8.3](https://github.com/upmind-automation/provision-provider-shared-hosting/releases/tag/v6.8.3) - 2024-12-04
 
 - Update WHMv1 create() add additional debug data to error results
 
